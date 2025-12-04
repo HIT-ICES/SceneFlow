@@ -1,0 +1,15 @@
+{
+  "name": "SceneFlowTools.Editor",
+  "references": [
+    "UnityEngine",
+    "UnityEditor",
+    "Unity.AI.Navigation",
+    "SceneFlowTools.Runtime",
+    "Newtonsoft.Json",
+    "Unity.EditorCoroutines.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}

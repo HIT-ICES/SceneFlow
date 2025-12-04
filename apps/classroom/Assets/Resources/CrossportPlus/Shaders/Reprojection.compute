@@ -1,0 +1,115 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#pragma multi_compile_local __ DISABLE_LINEARIZE_DEPTH
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> TargetTexture;
+Texture2D SourceTexture;
+Texture2D DepthTexture;
+int Width;
+int Height;
+float4 ProjectionParams; // .x=fov, .y=aspect, .z=near, .w=far
+float4x4 ReprojectionMatrix; // 传入的矩阵
+
+#define FOV ProjectionParams.x
+#define ASPECT ProjectionParams.y
+#define NEAR ProjectionParams.z
+#define FAR ProjectionParams.w
+
+[numthreads(8,8,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    // TargetTexture[id.xy] = float4(0, 1, 0, 1);
+    GroupMemoryBarrierWithGroupSync();
+
+    float4 color = SourceTexture[id.xy];
+    float depth = DepthTexture[id.xy].r;
+    // id.xy是像素点在Far平面的坐标
+    // float halfFarHeight = tan(FOV / 2) * FAR;
+    // float xFar = ((float)id.x / Width * 2 - 1) * halfFarHeight * ASPECT;
+    // float yFar = ((float)id.y / Height * 2 - 1) * halfFarHeight;
+    // float z = NEAR + depth * (FAR - NEAR);
+    // float x = xFar / FAR * z;
+    // float y = yFar / FAR * z;
+    // float4 dstPos = mul(ReprojectionMatrix, float4(x, y, -z, 1));
+    // dstPos /= dstPos.w;
+
+    float finalDepth = depth;
+    #if !DISABLE_LINEARIZE_DEPTH
+    finalDepth = (1.0f / depth - FAR / NEAR) / (1.0f - FAR / NEAR);
+    #endif
+
+    float4 srcPos = float4(
+        id.x * 2.0f / Width - 1.0f,
+        id.y * 2.0f / Height - 1.0f,
+        finalDepth,
+        1
+    );
+
+    float4 dstPos = mul(ReprojectionMatrix, srcPos);
+
+    int2 dstPosInt = int2(
+        (int)((dstPos.x + 1.0f) * Width / 2),
+        (int)((dstPos.y + 1.0f) * Height / 2)
+    );
+
+    if (dstPosInt.x >= 0 && dstPosInt.x < Width && dstPosInt.y >= 0 && dstPosInt.y < Height)
+    {
+        TargetTexture[dstPosInt] = color;
+    }
+    // TargetTexture[dstPosInt] = color;
+
+
+    //TargetTexture[dstPosInt] = color;
+    //TargetTexture[id.xy] = color;
+    // ResultTexture[id.xy] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 0.0);
+}
+
+
+// [numthreads(8,8,1)]
+// void CSMain(uint3 id : SV_DispatchThreadID)
+// {
+//     if (id.x >= 1024 || id.y >= 1024)
+//     {
+//         return;
+//     }
+//     float4x4 mat = 0;
+//     // mat[0][0] = 0;
+//     // mat[0][1] = 0;
+//     // mat[0][2] = 0;
+//     // mat[0][3] = 0;
+//     // mat[1][1] = 0;
+//     // mat[1][0] = 0;
+//     // mat[1][2] = 0;
+//     // mat[1][3] = 0;
+//     // mat[2][0] = 0;
+//     // mat[2][1] = 0;
+//     // mat[2][2] = 0;
+//     // mat[2][3] = 0;
+//     // mat[3][0] = 0;
+//     // mat[3][1] = 0;
+//     // mat[3][2] = 0;
+//     // mat[3][3] = 0;
+//     mat[0][0] = 0.5;
+//     mat[1][1] = 0.5;
+//     mat[2][2] = 1;
+//     mat[3][3] = 1;
+//     // TargetTexture[id.xy] = float4(mat[0][0], mat[1][1], mat[2][2], mat[3][3]);
+//     // return;
+//     float4 color = DepthTexture[id.xy];
+//     // float depth = DepthTexture[id.xy].r;
+//     // float depth = DepthTexture[id.xy].r;
+//     // float4 srcPos = float4(id.x, id.y, depth, 1);
+//     // float4 dstPos = mul(mat, srcPos);
+//     // dstPos.z = 1;
+//     // uint2 dstPosInt = uint2(max(0, min(1024, dstPos.x)), max(0, min(1024, dstPos.y)));
+//
+//     uint2 id2 = id.xy / 2;
+//     TargetTexture[id.xy] = color;
+//     //TargetTexture[dstPosInt] = color;
+//     //TargetTexture[id.xy] = color;
+//     // ResultTexture[id.xy] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 0.0);
+//
+//
+//     // Result[id.xy] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 0.0);
+// }

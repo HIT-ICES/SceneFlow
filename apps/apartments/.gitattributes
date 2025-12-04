@@ -1,0 +1,28 @@
+# Unity YAML/text assets — use Unity Smart Merge and normalize to LF
+*.unity              text merge=unityyamlmerge eol=lf
+*.prefab             text merge=unityyamlmerge eol=lf
+*.asset              text merge=unityyamlmerge eol=lf
+*.anim               text merge=unityyamlmerge eol=lf
+*.controller         text merge=unityyamlmerge eol=lf
+*.mat                text merge=unityyamlmerge eol=lf
+*.meta               text merge=unityyamlmerge eol=lf
+*.mask               text merge=unityyamlmerge eol=lf
+*.spriteatlas        text merge=unityyamlmerge eol=lf
+*.overrideController text merge=unityyamlmerge eol=lf
+*.playable           text merge=unityyamlmerge eol=lf
+
+# Source / text files — treat as text and normalize to LF
+*.cs     text diff=csharp eol=lf
+*.shader text eol=lf
+*.cginc  text eol=lf
+*.compute text eol=lf
+*.uxml   text eol=lf
+*.uss    text eol=lf
+*.json   text eol=lf
+*.asmdef text eol=lf
+*.asmref text eol=lf
+*.txt    text eol=lf
+*.md     text eol=lf
+*.xml    text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf

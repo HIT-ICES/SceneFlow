@@ -1,0 +1,3 @@
+# Ignore generated gobj info files (scene objects information data) because they are huge
+default.gobj_info.json
+default.gobj_info.json.meta

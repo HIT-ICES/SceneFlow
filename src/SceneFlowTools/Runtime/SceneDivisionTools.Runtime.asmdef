@@ -1,0 +1,10 @@
+{
+  "name": "SceneFlowTools.Runtime",
+  "references": [
+    "UnityEngine",
+    "Unity.XR.Interaction.Toolkit",
+    "Unity.AI.Navigation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": []
+}
