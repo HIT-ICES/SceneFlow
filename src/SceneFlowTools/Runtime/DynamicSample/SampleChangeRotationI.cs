@@ -5,15 +5,15 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeRotationI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：在玩家指向时触发旋转，作用于挂载对象和引用对象
+
         public Transform targetTransform;
         public Vector3 angularSpeed = new Vector3(0f, 90f, 0f);
 
-        private bool isPointed = false; // 用来检测玩家是否正在指向
+        private bool isPointed = false;
 
         void OnEnable()
         {
-            // [DeleteBeforeDetect] 获取 XRRayInteractor，并订阅事件
+
             XRRayInteractor rayInteractor = FindObjectOfType<XRRayInteractor>();
             if (rayInteractor != null)
             {
@@ -24,7 +24,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void OnDisable()
         {
-            // [DeleteBeforeDetect] 取消订阅事件
+
             XRRayInteractor rayInteractor = FindObjectOfType<XRRayInteractor>();
             if (rayInteractor != null)
             {
@@ -35,7 +35,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         private void OnHoverEntered(HoverEnterEventArgs args)
         {
-            // [DeleteBeforeDetect] 如果是玩家指向到这个对象，开始旋转
+
             if (args.interactableObject.transform == transform)
             {
                 isPointed = true;
@@ -44,7 +44,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         private void OnHoverExited(HoverExitEventArgs args)
         {
-            // [DeleteBeforeDetect] 当玩家停止指向该对象时，停止旋转
+
             if (args.interactableObject.transform == transform)
             {
                 isPointed = false;
@@ -53,12 +53,12 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 只有在玩家指向时才旋转
+
             if (isPointed)
             {
                 transform.Rotate(angularSpeed * Time.deltaTime, Space.Self);
 
-                // [DeleteBeforeDetect] 如果存在引用对象，反向旋转
+
                 if (targetTransform != null)
                 {
                     targetTransform.Rotate(-angularSpeed * Time.deltaTime, Space.Self);

@@ -7,7 +7,7 @@ using UnityEngine;
 namespace SceneFlowTools.Runtime
 {
     /// <summary>
-    /// 用于人工标注物体的动态性
+
     /// </summary>
     public class DynamicMarker : MonoBehaviour
     {

@@ -15,9 +15,6 @@ matplotlib.use('QtAgg')
 
 
 def iter_group(list, n):
-    """
-    将列表分组，每组n个元素
-    """
     for i in range(0, len(list), n):
         yield list[i:i + n]
 
@@ -26,7 +23,7 @@ def xxx(data_v, k):
     neighbors = NearestNeighbors(n_neighbors=k)
     neighbors_fit = neighbors.fit(data_v)
     distances, indices = neighbors_fit.kneighbors(data_v)
-    distances = np.sort(distances[:, -1])  # 取每个点到第5近邻的距离
+    distances = np.sort(distances[:, -1]) 
 
     plt.plot(distances)
     plt.title("K-Distance Graph")
@@ -76,7 +73,7 @@ def main():
     #         if Bounds.contains(bounds[i], bounds[j], axis=[0, 2]):
     #             contains_relation.append((i, j))
     #
-    # print(f"在{len(bounds)}个子场景中，包含关系的数量为: {len(contains_relation)}")
+
     #
     # for group in iter_group(contains_relation, 5):
     #     for a, b in group:
@@ -88,21 +85,21 @@ def main():
     #         mlab.points3d(data_v_ab[:, 0], data_v_ab[:, 1], data_v_ab[:, 2], labels_ab, mode='point', scale_factor=5.0,
     #                       colormap="spectral")
     #     mlab.show()
-    # 统计每个类别的样本数（不包括噪声点，噪声点label为-1）
+
     # unique_labels, counts = np.unique(labels[labels != -1], return_counts=True)
     #
-    # # 找到样本量最大的前20个类别
-    # top20_indices = np.argsort(counts)[-50:]  # 取最大的20个类别的索引
+
+
     # top20_labels = unique_labels[top20_indices]
     #
-    # # 只保留属于这20个类别的点
+
     # mask = np.isin(labels, top20_labels)
     # filtered_data = data_v[mask]
     # filtered_labels = labels[mask]
     #
     # print("Number of clusters (top 20):", len(top20_labels))
     #
-    # # 重新映射label为0~19，便于colormap显示
+
     # label_map = {label: idx for idx, label in enumerate(top20_labels)}
     # filtered_labels_mapped = np.array([label_map[l] for l in filtered_labels])
     #

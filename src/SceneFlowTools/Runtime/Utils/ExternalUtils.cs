@@ -151,7 +151,7 @@ namespace SceneFlowTools.Runtime
                 return Path.Combine(Application.dataPath, assetPath.Substring("Assets".Length + 1));
             }
 
-            throw new ArgumentException("路径不是以Assets开头");
+            throw new ArgumentException("path must start with Assets");
         }
     }
 }

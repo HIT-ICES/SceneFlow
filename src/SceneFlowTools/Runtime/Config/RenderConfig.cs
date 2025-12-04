@@ -6,7 +6,7 @@ using UnityEngine.Assertions;
 
 namespace SceneFlowTools.Runtime.Config
 {
-    // 场景配置，每个微服务相同
+
     [Serializable]
     public class SceneConfig : ScriptableObject
     {
@@ -106,7 +106,7 @@ namespace SceneFlowTools.Runtime.Config
         }
     }
 
-    // 服务配置，每个微服务不同
+
     [Serializable]
     public class ServiceConfig
     {
@@ -121,28 +121,28 @@ namespace SceneFlowTools.Runtime.Config
     [Serializable]
     public class Subscene
     {
-        // 场景ID
+
         public int id;
 
-        // 父场景ID，-1表示没有父场景
+
         public int parentId;
 
-        // 这个场景包含的物体（不包括其子场景的物体）
+
         public List<string> objectIds;
 
-        // 这个场景包含的子场景
+
         public List<int> subscenes;
 
-        // 这个场景的边界
+
         public Bounds bounds;
 
-        // 这个场景的统计信息（不包括其子场景的物体）
+
         public SubsceneMetrics metrics;
 
-        // 这个场景的统计信息（不包括其子场景的物体）
+
         public SubsceneMetrics metricsIncludeChildren;
 
-        // 用户位于此子场景的概率（包括子场景）
+
         public double userProbability;
 
         public static List<int> GetLeafNodes(List<Subscene> scenes)
@@ -206,7 +206,7 @@ namespace SceneFlowTools.Runtime.Config
 
     public static class SubsceneUtils
     {
-        // 删除没有物体的节点（根节点除外）
+
         public static void DeleteEmptyNodes(List<Subscene> subscenes, int p)
         {
             Subscene node = subscenes[p];
@@ -234,7 +234,7 @@ namespace SceneFlowTools.Runtime.Config
             }
         }
 
-        // 删除列表中的空场景，并重新编号
+
         public static void RemoveNulls(List<Subscene> scenes)
         {
             for (int i = 0; i < scenes.Count; i++)

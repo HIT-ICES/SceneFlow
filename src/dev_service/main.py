@@ -1,7 +1,7 @@
 import hashlib
 import os
 from typing import Union
-import time  # 添加计时
+import time
 
 import numpy as np
 from fastapi.encoders import jsonable_encoder
@@ -15,7 +15,7 @@ from middleware.request_gc import GCMiddleware
 from middleware.request_gzip import GZipRequestMiddleware, DecompressRequestMiddleware
 from utils import dataset
 
-# 日志引入（新增）
+
 import logging_config  # noqa: F401
 from loguru import logger
 
@@ -108,7 +108,7 @@ async def dynamic_detection(params: DynamicDetectionParams):
     from dynamic_detection import detect_script
     start_time = time.monotonic()
     retry_count = 3
-    result = None  # 初始化
+    result = None
     while retry_count > 0:
         try:
             retry_count -= 1
@@ -128,7 +128,7 @@ async def dynamic_detection(params: DynamicDetectionParams):
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}")
     import traceback
-    # 获取完整的异常堆栈信息
+
     tb_str = ''.join(traceback.format_exception(exc))
     return JSONResponse(
         status_code=500,
@@ -136,6 +136,6 @@ async def global_exception_handler(request: Request, exc: Exception):
             "error": str(exc),
             "type": type(exc).__name__,
             "args": exc.args,
-            "traceback": tb_str,  # 打印堆栈信息（开发调试用，生产环境慎用）
+            "traceback": tb_str,
         }
     )

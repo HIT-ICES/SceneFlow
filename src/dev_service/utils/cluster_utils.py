@@ -11,7 +11,7 @@ from sklearn.neighbors import NearestNeighbors
 
 def downsample_data(data, step=0.5):
     """
-    对数据进行下采样，使用step作为下采样的步长
+    downsample data, using step as the downsample step size
     """
     data = np.array(data)
     keys = (data / step).round().astype(int)
@@ -22,7 +22,7 @@ def downsample_data(data, step=0.5):
 
 def unify_by_id(data_id_list, labels):
     """
-    使每个id对应一个标签（如果一个id对应多个标签，则取出现次数最多的标签）
+    Make each id correspond to one label (if an id corresponds to multiple labels, take the most frequent label)
     """
     id_label_bucket = {}
     for vid, label in zip(data_id_list, labels):
@@ -34,7 +34,7 @@ def unify_by_id(data_id_list, labels):
 
     id_label_map = {}
     for vid, label_dict in id_label_bucket.items():
-        # 找到出现次数最多的label
+
         max_label = max(label_dict, key=label_dict.get)
         id_label_map[vid] = max_label
 
@@ -45,30 +45,30 @@ def unify_by_id(data_id_list, labels):
 
 def cluster_noise_points(*, data_v, labels):
     """
-    对于标签为-1的数据点，将标签设置为最近的非-1标签的数据点的标签。
+    For data points with label -1, set the label to the nearest non--1 labeled data point.
     Args:
         data_v (np.ndarray): shape (n_samples, n_features)
         labels (np.ndarray): shape (n_samples,)
     Returns:
-        np.ndarray: 更新后的标签数组
+        np.ndarray: updated label array
     """
     data_v = np.asarray(data_v)
     labels = np.asarray(labels)
     new_labels = labels.copy()
 
-    # 只查找非-1标签的样本
+
     mask_valid = labels != -1
     mask_invalid = labels == -1
 
-    # 如果没有需要更新的标签，直接返回
+
     if not np.any(mask_invalid):
         return new_labels
 
-    # 构建最近邻模型
+
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto', n_jobs=16).fit(data_v[mask_valid])
     distances, indices = nbrs.kneighbors(data_v[mask_invalid])
 
-    # 更新标签
+
     nearest_labels = labels[mask_valid][indices[:, 0]]
     new_labels[mask_invalid] = nearest_labels
 
@@ -77,7 +77,7 @@ def cluster_noise_points(*, data_v, labels):
 
 def remap_labels(labels):
     """
-    将标签从0开始映射
+    Remap labels to start from 0
     """
     unique_labels = np.unique(labels)
     label_map = {label: i for i, label in enumerate(unique_labels)}
@@ -86,9 +86,9 @@ def remap_labels(labels):
 
 def labels_to_colors(labels, colormap="tab20"):
     """
-    将标签映射到颜色
+    Map labels to colors
     """
-    import matplotlib.pyplot as plt  # 延迟导入
+    import matplotlib.pyplot as plt
     unique_labels = np.unique(labels)
     if type(colormap) == str:
         colormap = plt.get_cmap(colormap, len(unique_labels))
@@ -98,7 +98,7 @@ def labels_to_colors(labels, colormap="tab20"):
 
 
 def show_figure(title, data_v, labels, point_size=1, colormap="tab20", non_modal=False, save_pic_path=None):
-    # 延迟导入 open3d，避免未使用时占用内存
+
     import open3d as o3d
     if non_modal:
         logger.info("show_figure: non-modal mode, start a new process")
@@ -110,7 +110,7 @@ def show_figure(title, data_v, labels, point_size=1, colormap="tab20", non_modal
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(data_v)
     pcd.colors = o3d.utility.Vector3dVector(labels_to_colors(labels, colormap))
-    # 计算重心
+
     center = np.mean(data_v, axis=0)
     o3d.visualization.draw(
         [pcd],
@@ -127,7 +127,7 @@ def show_figure(title, data_v, labels, point_size=1, colormap="tab20", non_modal
 
 def show_figure_saved(point_size=5, colormap="tab20"):
     """
-    显示保存的图形数据
+    Show saved figure data
     """
     path = "figure_cache/"
     files = [f for f in os.listdir(path) if f.endswith('.pkl')]
@@ -149,7 +149,7 @@ def show_figure_saved(point_size=5, colormap="tab20"):
 
 def delete_figure_saved():
     """
-    删除保存的图形数据
+    Delete saved figure data
     """
     path = "figure_cache/"
     files = [f for f in os.listdir(path) if f.endswith('.pkl')]
@@ -160,7 +160,7 @@ def delete_figure_saved():
 
 def save_figure_data(title, data_v, labels):
     """
-    保存数据到pickle文件
+    Save data to a pickle file
     """
     now = datetime.now()
     filename = now.strftime('%Y-%m-%d-%H-%M-%S') + '-%03d' % (now.microsecond // 1000) + uuid.uuid4().hex + '.pkl'
@@ -177,7 +177,7 @@ def save_figure_data(title, data_v, labels):
 
 def downsample_data_new(data_v: np.ndarray, data_id: np.ndarray, step=0.5) -> tuple[np.ndarray, dict[Any, np.ndarray]]:
     """
-    对数据进行下采样，使用step作为下采样的步长
+    Downsample data, using step as the downsample step size
     """
     keys = (data_v / step).astype(int)
     _, data_v_idx, data_ds_inverse = np.unique(keys, axis=0, return_index=True, return_inverse=True)
@@ -195,7 +195,7 @@ def downsample_data_new(data_v: np.ndarray, data_id: np.ndarray, step=0.5) -> tu
 
 def unify_by_id_new(obj_v_idxes: dict, labels: np.ndarray):
     """
-    使每个id对应一个标签（如果一个id对应多个标签，则取出现次数最多的标签）
+    Make each id correspond to one label (if an id corresponds to multiple labels, take the most frequent label)
     """
     new_labels = np.array(labels, copy=True)
     for oid, v_idxes in obj_v_idxes.items():
@@ -205,7 +205,7 @@ def unify_by_id_new(obj_v_idxes: dict, labels: np.ndarray):
             if label not in label_counts:
                 label_counts[label] = 0
             label_counts[label] += 1
-        # 找到出现次数最多的label
+
         max_label = max(label_counts, key=label_counts.get)
         for idx in v_idxes:
             new_labels[idx] = max_label

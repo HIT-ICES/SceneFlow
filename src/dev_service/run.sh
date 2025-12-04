@@ -1,44 +1,44 @@
 #!/bin/bash
 
-# 项目虚拟环境目录
+
 VENV_DIR=".venv"
-# uvicorn 启动参数
+
 APP_MODULE="main:app"
 HOST="0.0.0.0"
 PORT="8000"
 
 function start() {
-    # 检查服务是否已运行，如果是则先停止
+
     if [ -f scdv_service.pid ]; then
         PID=$(cat scdv_service.pid)
         if kill -0 $PID 2>/dev/null; then
-            echo "[INFO] 检测到服务已在运行，终止服务..."
+            echo "[INFO] Detected service already running, stopping service..."
             kill $PID
             rm -f scdv_service.pid
             sleep 1
         fi
     fi
-    echo "[INFO] 更新代码..."
+    echo "[INFO] Updating code..."
     if ! git pull ; then
-        echo "[ERROR] 代码更新失败，请检查网络或Git配置。"
+        echo "[ERROR] Code update failed, please check network or Git configuration."
         exit 1
     fi
-    echo "[INFO] 同步依赖..."
+    echo "[INFO] Synchronizing dependencies..."
     uv sync
     if ! uv sync ; then
-        echo "[ERROR] 依赖同步失败，请检查 uv 配置。"
+        echo "[ERROR] Dependency synchronization failed, please check uv configuration."
         exit 1
     fi
     if [ ! -d "$VENV_DIR" ]; then
-        echo "[ERROR] 未找到虚拟环境目录 $VENV_DIR，请先创建虚拟环境。"
+        echo "[ERROR] Virtual environment directory $VENV_DIR not found. Please create the virtual environment first."
         exit 1
     fi
     source "$VENV_DIR/bin/activate"
-    echo "[INFO] 启动服务..."
+    echo "[INFO] Starting service..."
     unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
     nohup uvicorn $APP_MODULE --host $HOST --port $PORT >/dev/null 2>&1 &
     echo $! > scdv_service.pid
-    echo "[INFO] 服务已启动，PID: $(cat scdv_service.pid)"
+    echo "[INFO] Service started, PID: $(cat scdv_service.pid)"
 }
 
 function stop() {
@@ -46,13 +46,13 @@ function stop() {
         PID=$(cat scdv_service.pid)
         if kill -0 $PID 2>/dev/null; then
             kill $PID
-            echo "[INFO] 已停止服务，PID: $PID"
+            echo "[INFO] Service stopped, PID: $PID"
         else
-            echo "[WARNING] 未找到运行中的进程，或已退出。"
+            echo "[WARNING] No running process found, or it has already exited."
         fi
         rm -f scdv_service.pid
     else
-        echo "[WARNING] 未找到 scdv_service.pid，尝试查找并终止进程..."
+        echo "[WARNING] scdv_service.pid not found, attempting to find and terminate the process..."
         pkill -f "uvicorn $APP_MODULE"
     fi
 }
@@ -65,7 +65,7 @@ case "$1" in
         stop
         ;;
     *)
-        echo "用法: $0 {start|stop}"
+        echo "Usage: $0 {start|stop}"
         exit 1
         ;;
 esac

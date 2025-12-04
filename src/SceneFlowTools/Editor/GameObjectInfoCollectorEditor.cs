@@ -14,7 +14,7 @@ namespace SceneFlowTools.Editor
 {
     public class GameObjectInfoCollectorEditor : UnityEditor.Editor
     {
-        [MenuItem("GameObject/Collect GameObject Infos", false, 10)] // 添加右键菜单项
+        [MenuItem("GameObject/Collect GameObject Infos", false, 10)]
         private static void CollectAllObjectsInScene()
         {
             GameObject[] allObjects = Object.FindObjectsOfType<GameObject>();

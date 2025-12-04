@@ -190,7 +190,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
                     {
                         if (dynamicInfo.Type == "this")
                         {
-                            // 过滤掉没有Renderer的物体
+
                             if (obj.GetComponentsInChildren<Renderer>().Length == 0) continue;
                             SetObjectDynamicType(objectInfoDict, obj, ObjectDynamicType.Dynamic);
                         }
@@ -198,9 +198,9 @@ namespace SceneFlowTools.Editor.DynamicDetection
                         {
                             GameObject fieldObj = GetFieldRelatedGameObject(comp, dynamicInfo.Name);
                             if (fieldObj == null) continue;
-                            // 过滤掉未激活的物体
+
                             if (!fieldObj.activeInHierarchy) continue;
-                            // 过滤掉没有Renderer的物体
+
                             if (fieldObj.GetComponentsInChildren<Renderer>().Length == 0) continue;
                             Debug.Log(
                                 $"Object {obj.name} field {dynamicInfo.Name} references dynamic object {fieldObj.name}");
@@ -291,7 +291,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
 
         private GameObject GetFieldRelatedGameObject(Component comp, string fieldName)
         {
-            // fieldName 也可能被SerializeField属性覆盖
+
             // if (comp is VideoPlayer videoPlayer)
             // {
             //     var targetRenderer = videoPlayer.targetMaterialRenderer;
