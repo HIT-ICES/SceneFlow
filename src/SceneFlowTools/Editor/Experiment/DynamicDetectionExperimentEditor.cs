@@ -58,6 +58,7 @@ namespace SceneFlowTools.Editor.Experiment
                 .Where(type =>
                     type.IsClass && !type.IsAbstract && type.Namespace == "SceneFlowTools.Runtime.DynamicSample")
                 .Where(t => t.Name.StartsWith("Sample"))
+                .Where(t => t.IsPublic)
                 .ToList();
 
             Debug.Log($"Start experiment for {samples.Count} sample scripts.");
@@ -69,6 +70,8 @@ namespace SceneFlowTools.Editor.Experiment
             ).ToList();
 
             List<ScriptDynamicInfo> infos = new List<ScriptDynamicInfo>();
+            // int promptTokens = 0;
+            // int completionTokens = 0;
 
 
             Parallel.ForEach(
@@ -83,11 +86,13 @@ namespace SceneFlowTools.Editor.Experiment
                     var scriptDynamicInfo = new ScriptDynamicInfo
                     {
                         ScriptPath = task.scriptType.Name,
-                        Dynamics = result.ToArray()
+                        Dynamics = result.results.ToArray()
                     };
                     lock (infos)
                     {
                         infos.Add(scriptDynamicInfo);
+                        // promptTokens += result.promptTokens;
+                        // completionTokens += result.completionTokens;
                     }
                 }
             );

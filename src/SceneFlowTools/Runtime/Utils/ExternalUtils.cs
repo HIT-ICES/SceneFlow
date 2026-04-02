@@ -60,7 +60,7 @@ namespace SceneFlowTools.Runtime
             return await PostAsync<List<List<string>>>("/scene_division", content).ConfigureAwait(false);
         }
 
-        public static async Task<List<DynamicInfo>> DynamicDetection(string scriptName, string script, bool useCache = true)
+        public static async Task<DynamicDetectionResult> DynamicDetection(string scriptName, string script, bool useCache = true)
         {
             var body = new Dictionary<string, object>
             {
@@ -71,7 +71,7 @@ namespace SceneFlowTools.Runtime
 
             var content = CreateGzipJsonContent(body);
 
-            return await PostAsync<List<DynamicInfo>>("/dynamic_detection", content).ConfigureAwait(false);
+            return await PostAsync<DynamicDetectionResult>("/dynamic_detection", content).ConfigureAwait(false);
         }
 
         private static async Task<T> PostAsync<T>(string relativeUrl, HttpContent content)
@@ -99,7 +99,7 @@ namespace SceneFlowTools.Runtime
                         NamingStrategy = new CamelCaseNamingStrategy(),
                     }
                 });
-                Debug.Log($"{respContent} --> {JsonConvert.SerializeObject(result)}");
+                Debug.Log($"PostAsync: {respContent} --> {JsonConvert.SerializeObject(result)}");
             }
             catch (Exception e)
             {
@@ -151,7 +151,7 @@ namespace SceneFlowTools.Runtime
                 return Path.Combine(Application.dataPath, assetPath.Substring("Assets".Length + 1));
             }
 
-            throw new ArgumentException("path must start with Assets");
+            throw new ArgumentException("路径不是以Assets开头");
         }
     }
 }

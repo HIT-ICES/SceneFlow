@@ -11,11 +11,12 @@ using UnityEngine.Events;
 
 namespace SceneFlowTools.Runtime.Config
 {
-
+    // 渲染控制组件
     public class RenderConfigManager : MonoBehaviour
     {
         private const string ServiceConfigPath = "service_config.json";
         public double boundsContainsEps = 0.1;
+        public bool allowEmptyNodes = true;
         public SceneDivision sceneDivision;
         public DynamicDetectionManager dynamicDetectionManager;
         public SceneConfig sceneConfig;
@@ -35,8 +36,8 @@ namespace SceneFlowTools.Runtime.Config
 
         [NonSerialized] public NodeGizmosSettings nodeGizmosSettings = new NodeGizmosSettings();
 
-
-
+        // 运行时，从文件读取ServiceConfig
+        // 根据配置决定渲染哪些物体
         private void Start()
         {
             if (!Application.isEditor)
@@ -137,17 +138,17 @@ namespace SceneFlowTools.Runtime.Config
 
         IEnumerator AsyncReleaseMemory()
         {
-
+            // 先等待几帧，确保所有删除操作完成
             for (int i = 0; i < 5; i++)
                 yield return null;
-
+            // C# GC，回收托管对象
             GC.Collect();
-
+            // Unity资源回收，回收未使用的资源
             Debug.Log("AsyncReleaseMemory: start Resources.UnloadUnusedAssets");
             var op = Resources.UnloadUnusedAssets();
             yield return op;
             Debug.Log("AsyncReleaseMemory: complete Resources.UnloadUnusedAssets");
-
+            // 再次C# GC，确保彻底回收
             GC.Collect();
             Debug.Log("AsyncReleaseMemory: complete GC.Collect");
         }
@@ -164,28 +165,28 @@ namespace SceneFlowTools.Runtime.Config
             started = true;
         }
 
-
-
-
-
+        // 阻止物体渲染
+        // 不包括子物体
+        // 不应该直接Disable物体，因为这样会影响脚本的运行
+        // 应该通过禁用Renderer组件、Collider组件等方式来实现
         void DisableObjectRender(GameObject obj)
         {
             if (obj == null) return;
             if (obj.TryGetComponent(out Renderer r))
             {
                 r.enabled = false;
-
+                // 清理材质（如是实例化材质可Destroy，否则用sharedMaterial不用销毁）
                 if (r.material != null && r.material != r.sharedMaterial)
                 {
                     Destroy(r.material);
                 }
 
                 r.material = null;
-
+                // 移除Renderer组件
                 Destroy(r);
             }
 
-
+            // 清理Mesh（针对MeshFilter或SkinnedMeshRenderer）
             if (obj.TryGetComponent(out MeshFilter mf))
             {
                 if (mf.mesh != null && mf.mesh != mf.sharedMesh)

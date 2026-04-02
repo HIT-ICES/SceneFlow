@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 namespace SceneFlowTools.Runtime.Experiment
 {
     /// <summary>
-
+    /// 用于动态检测实验的分析脚本
     /// </summary>
     public class DynamicDetectionExperiment : MonoBehaviour
     {
@@ -20,28 +20,38 @@ namespace SceneFlowTools.Runtime.Experiment
             var id2ObjMap = MetaInfo.CollectAllDict();
             var obj2IdMap = MetaInfo.CollectAllDictReversed();
             var detectedDynamicObjects = detector.data.ObjectsDynamicInfo
-                .ToDictionary(x => x.ObjectId, x => x.MarkedType);
+                .ToDictionary(x => x.ObjectId, x => x.DynamicType);
+            Debug.Log($"Detected {detectedDynamicObjects.Count} dynamic objects.");
             var markedDynamicObjects = DynamicMarker.CollectAll()
                 .ToDictionary(x => obj2IdMap[x.obj], x => x.type);
             
             var allObjects = obj2IdMap.Select(x => x.Value).ToList();
-            DynDetectExpResult result = new DynDetectExpResult
+            Dictionary<string, DynDetectExpItem> items = new Dictionary<string, DynDetectExpItem>();
+            foreach (var obj in allObjects)
             {
-                sceneName = SceneManager.GetActiveScene().name,
-                items = new List<DynDetectExpItem>()
-            };
+                items[obj] = new DynDetectExpItem()
+                {
+                    objectId = obj,
+                    trueLabel = ObjectDynamicType.Static,
+                    predictedLabel = ObjectDynamicType.Static
+                };
+            }
             foreach (var objId in allObjects)
             {
                 ObjectDynamicType trueLabel = markedDynamicObjects.GetValueOrDefault(objId, ObjectDynamicType.Static);
                 ObjectDynamicType predictedLabel = detectedDynamicObjects.GetValueOrDefault(objId, ObjectDynamicType.Static);
-                result.items.Add(new DynDetectExpItem
+                items[objId] = new DynDetectExpItem
                 {
                     objectId = objId,
                     trueLabel = trueLabel,
                     predictedLabel = predictedLabel
-                });
+                };
             }
-
+            DynDetectExpResult result = new DynDetectExpResult
+            {
+                sceneName = SceneManager.GetActiveScene().name,
+                items = items.Values.ToList()
+            };
             return result;
         }
 
@@ -50,7 +60,8 @@ namespace SceneFlowTools.Runtime.Experiment
             Debug.Log($"Dynamic Detection Experiment Result for Scene: {result.sceneName}");
             var mapId2Obj = MetaInfo.CollectAllDict();
             var falseCount = result.items.Count(x => x.predictedLabel != x.trueLabel);
-            Debug.Log($"Total Objects: {result.items.Count}, Misclassified Objects: {falseCount}");
+            var dynamicCount = result.items.Count(x => x.predictedLabel.IsDynamic());
+            Debug.Log($"Total Objects: {result.items.Count}, Dynamic: {dynamicCount} Misclassified: {falseCount}");
             foreach (var item in result.items.Where(x => x.predictedLabel != x.trueLabel))
             {
                 string objName = mapId2Obj.ContainsKey(item.objectId)

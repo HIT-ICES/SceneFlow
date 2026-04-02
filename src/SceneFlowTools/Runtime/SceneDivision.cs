@@ -8,7 +8,7 @@ namespace SceneFlowTools.Runtime
     [RequireComponent(typeof(MeshObjectList))]
     public class SceneDivision : MonoBehaviour
     {
-
+        // 第一步，进行全局的场景划分
         public GlobalDivisionParams globalDivisionParams;
         [NonSerialized]
         public bool regenerateSceneInfo = true;
@@ -19,7 +19,7 @@ namespace SceneFlowTools.Runtime
         public int showGlobalDivisionRegionIndex;
 
 
-
+        // 第二步，进行包围结构的划分
         public VoxelizeOptions roomDivisionParams;
         public VoxelizeResult roomDivisionResult;
         [NonSerialized]
@@ -92,8 +92,10 @@ namespace SceneFlowTools.Runtime
     public class DbscanExtraParams
     {
         public float downsampleStep = 0.5f;
-        public float eps = 2.0f;
-        public int minSamples = 10;
+        public float eps = 2.0f; // 邻域半径
+        public int minSamples = 10; // 最小点数
+        [Tooltip("KMeans使用")]
+        public int numClusters = 4; // 簇数量
     }
 
     [Serializable]
@@ -101,5 +103,8 @@ namespace SceneFlowTools.Runtime
     {
         Dbscan,
         VoxelDbscan,
+        KMeans,
+        VoxelKMeans,
+        VoxelGrid,
     }
 }

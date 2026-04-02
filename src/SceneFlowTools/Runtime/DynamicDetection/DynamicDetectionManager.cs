@@ -10,7 +10,9 @@ namespace SceneFlowTools.Runtime.DynamicDetection
     {
         public DynamicDetectionData data;
         [NonSerialized] public bool gizmosDynamicObjects;
-        [NonSerialized] public List<GameObject> cachedGizmosObjects;
+
+        [NonSerialized]
+        public List<GameObject> cachedGizmosDynamic, cachedGizmosInteractive, cachedGizmosWrong, cachedGizmosError;
 
         // private void Start()
         // {
@@ -20,42 +22,88 @@ namespace SceneFlowTools.Runtime.DynamicDetection
         //     data = sceneData;
         // }
 
+
+        private void HighlightObject(GameObject obj, Color color)
+        {
+            Gizmos.color = color;
+            var meshes = obj.GetComponentsInChildren<MeshFilter>();
+            foreach (var mesh in meshes)
+            {
+                if (mesh == null || mesh.sharedMesh == null) continue;
+                Gizmos.DrawWireMesh(mesh.sharedMesh,
+                    mesh.transform.position,
+                    mesh.transform.rotation, mesh.transform.lossyScale);
+            }
+        }
+
         private void OnDrawGizmos()
         {
             if (!gizmosDynamicObjects || data == null || data.ObjectsDynamicInfo == null) return;
-            if (cachedGizmosObjects == null)
+            if (cachedGizmosDynamic == null)
             {
                 UpdateCachedGizmosObjects();
             }
 
-            foreach (var obj in cachedGizmosObjects)
+            foreach (var obj in cachedGizmosDynamic)
             {
-                // Debug.Log($"Draw gizmos for dynamic object: {obj.name}");
-                Gizmos.color = Color.green;
-                var meshes = obj.GetComponentsInChildren<MeshFilter>();
-                foreach (var mesh in meshes)
-                {
-                    if (mesh == null || mesh.sharedMesh == null) continue;
-                    Gizmos.DrawWireMesh(mesh.sharedMesh,
-                        mesh.transform.position,
-                        mesh.transform.rotation, mesh.transform.lossyScale);
-                }
+                HighlightObject(obj, Color.green);
+            }
+
+            foreach (var obj in cachedGizmosInteractive)
+            {
+                HighlightObject(obj, Color.blue);
+            }
+
+            foreach (var obj in cachedGizmosWrong)
+            {
+                HighlightObject(obj, Color.yellow);
+            }
+
+            foreach (var obj in cachedGizmosError)
+            {
+                HighlightObject(obj, Color.red);
             }
         }
 
         private void UpdateCachedGizmosObjects()
         {
-            List<GameObject> allObjects = MetaInfo.CollectAll().Select(x => x.obj).ToList();
-            cachedGizmosObjects = new List<GameObject>();
-            foreach (var dynamicObjInfo in data.ObjectsDynamicInfo)
+            Dictionary<string, GameObject> allObjects = MetaInfo.CollectAllDict();
+            Dictionary<string, ObjectDynamicType> detectedResults =
+                data.ObjectsDynamicInfo.ToDictionary(info => info.ObjectId, info => info.DynamicType);
+            Dictionary<string, ObjectDynamicType> truthResults = allObjects.Values
+                .Where(o => o.GetComponent<DynamicMarker>())
+                .ToDictionary(o => o.GetComponent<MetaInfo>().uid, o => o.GetComponent<DynamicMarker>().dynamicType);
+            cachedGizmosDynamic = new List<GameObject>();
+            cachedGizmosInteractive = new List<GameObject>();
+            cachedGizmosWrong = new List<GameObject>();
+            cachedGizmosError = new List<GameObject>();
+            // foreach (var x in data.ObjectsDynamicInfo)
+            // {
+            //     if (x.DynamicType != x.MarkedType)
+            //         cachedGizmosWrong.Add(allObjects[x.ObjectId]);
+            //     else if (x.DynamicType == ObjectDynamicType.DynamicInteractive)
+            //         cachedGizmosInteractive.Add(allObjects[x.ObjectId]);
+            //     else if (x.DynamicType == ObjectDynamicType.Dynamic)
+            //         cachedGizmosDynamic.Add(allObjects[x.ObjectId]);
+            // }
+            foreach (var obj in detectedResults.Keys.Union(truthResults.Keys))
             {
-                if (!dynamicObjInfo.DynamicType.IsDynamic()) continue;
-                var obj = allObjects.Find(o =>
-                    o.TryGetComponent(out MetaInfo meta) && meta.uid == dynamicObjInfo.ObjectId);
-                if (obj != null)
+                if (allObjects[obj] == null)
                 {
-                    cachedGizmosObjects.Add(obj);
+                    Debug.LogWarning($"Object with id {obj} not found in the scene.");
+                    continue;
                 }
+                ObjectDynamicType detected = detectedResults.GetValueOrDefault(obj, ObjectDynamicType.Static);
+                ObjectDynamicType truth = truthResults.GetValueOrDefault(obj, ObjectDynamicType.Static);
+                if (detected != truth)
+                    if (detected > truth && detected - truth == 1)
+                        cachedGizmosWrong.Add(allObjects[obj]);
+                    else
+                        cachedGizmosError.Add(allObjects[obj]);
+                else if (detected == ObjectDynamicType.DynamicInteractive)
+                    cachedGizmosInteractive.Add(allObjects[obj]);
+                else if (detected == ObjectDynamicType.Dynamic)
+                    cachedGizmosDynamic.Add(allObjects[obj]);
             }
         }
     }

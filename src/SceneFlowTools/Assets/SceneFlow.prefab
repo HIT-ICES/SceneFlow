@@ -337,7 +337,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   usePredefinedServiceHost: 2
-  serviceHost: localhost:8000
+  serviceHost: rick-ices:8000
 --- !u!1 &7709201015287104072
 GameObject:
   m_ObjectHideFlags: 0

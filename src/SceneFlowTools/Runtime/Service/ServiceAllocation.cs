@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
 using SceneFlowTools.Runtime.Config;
+using SceneFlowTools.Runtime.DynamicDetection;
 using UnityEngine;
 using Utils;
 
@@ -18,6 +19,7 @@ namespace SceneFlowTools.Runtime.Service
         public double renderTimeTrangleFactor = 0.00001;
         public int cloudSceneLayerCount = 1;
         public int deviceSceneLayerCount = 1;
+        public bool deviceSceneNeedsInteractive = false;
         public List<ServerInfo> servers;
 
         public AllocationResult allocationResult;
@@ -38,12 +40,28 @@ namespace SceneFlowTools.Runtime.Service
 
         public void DoAllocate()
         {
+            var objectDynamicType = renderConfigManager.dynamicDetectionManager.data.ObjectsDynamicInfo
+                .ToDictionary(x => x.ObjectId, x => x.DynamicType);
+            var sceneHasInteractive = new Func<Subscene, bool>((s) =>
+            {
+                foreach (var objId in s.objectIds)
+                {
+                    if (objectDynamicType.ContainsKey(objId) &&
+                        objectDynamicType[objId] == ObjectDynamicType.DynamicInteractive)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
             List<Subscene> scenes = renderConfigManager.sceneConfig.scenes;
             int maxDepth = scenes.Select((t, i) => SubsceneUtils.GetDepth(scenes, i)).Prepend(0).Max();
             List<int> cloudScenes = scenes.Where(t => SubsceneUtils.GetDepth(scenes, t.id) < cloudSceneLayerCount)
                 .Select(t => t.id).ToList();
             _deviceScenes = scenes
-                .Where(t => SubsceneUtils.GetHeight(scenes, t.id) <= deviceSceneLayerCount - 1)
+                .Where(t => SubsceneUtils.GetHeight(scenes, t.id) <= deviceSceneLayerCount - 1 &&
+                            (!deviceSceneNeedsInteractive || sceneHasInteractive(t)))
                 .Select(t => t.id).ToHashSet();
             _edgeScenes = scenes
                 .Select(t => t.id)
@@ -79,7 +97,7 @@ namespace SceneFlowTools.Runtime.Service
             return (maxUserCount, allocation);
         }
 
-
+        // 检查单个子场景是否超载
         private bool CheckSingleSubsceneOverload(int userCount)
         {
             foreach (var sceneId in _edgeScenes)
@@ -99,7 +117,7 @@ namespace SceneFlowTools.Runtime.Service
             List<Subscene> sceneList = Subscenes
                 .Where(t => _edgeScenes.Contains(t.id))
                 .ToList();
-
+            // 按照渲染时间从大到小排序
             sceneList.Sort((a, b) => EstimateRenderTime(b, userCount).CompareTo(EstimateRenderTime(a, userCount)));
             List<ServerAllocationResult> services = new List<ServerAllocationResult>();
             foreach (ServerInfo server in servers)
@@ -123,7 +141,7 @@ namespace SceneFlowTools.Runtime.Service
                 }
             }
 
-
+            // 如果还有场景没有分配完，说明不可行
             foreach (var scene in sceneList)
             {
                 if (scene != null)
@@ -147,7 +165,7 @@ namespace SceneFlowTools.Runtime.Service
                 for (int i = 0; i < nodeLayers.Count; i++)
                 {
                     var nodeLayer = nodeLayers[i];
-
+                    // 如果gpu内存超过限制，则拆分
                     int maxGpuMemoryIndex = FindHeavestNode(nodeLayer, n => n.metrics.gpuMemory).index;
                     if (nodeLayer[maxGpuMemoryIndex].metrics.gpuMemory > servers[0].gpuMemoryBytes)
                     {
@@ -156,8 +174,8 @@ namespace SceneFlowTools.Runtime.Service
                             FindHeavestNodeInChildren(nodeLayer[maxGpuMemoryIndex], n => n.metrics.gpuMemory).nodeId;
                         if (heaviestId == -1)
                         {
-
-
+                            // Debug.Log($"CheckServiceDivision2(userCount={userCount}) 没有子节点了，无法拆分");
+                            // 说明没有子节点了，无法拆分
                             return null;
                         }
 
@@ -170,21 +188,21 @@ namespace SceneFlowTools.Runtime.Service
                     }
 
                     AssertNodesNotOverlap(nodeLayers);
-
+                    // 如果渲染时间超过限制，则拆分
                     int maxRenderTimeIndex = FindHeavestNode(nodeLayer, n => EstimateRenderTime(n, userCount)).index;
                     // Debug.Log(
                     // $"Heavest render time node: {nodeLayer[maxRenderTimeIndex].rootId}, time: {EstimateRenderTime(nodeLayer[maxRenderTimeIndex], userCount)}");
                     if (EstimateRenderTime(nodeLayer[maxRenderTimeIndex], userCount) > 1.0 / fpsLimit)
                     {
                         // Debug.Log(
-
+                        // $"CheckServiceDivision2(userCount={userCount}) 节点 {nodeLayer[maxRenderTimeIndex].rootId} 渲染时间 {EstimateRenderTime(nodeLayer[maxRenderTimeIndex], userCount)} 超过限制 {1.0 / fpsLimit}，需要拆分");
                         flagAllInLimit = false;
                         int heaviestId = FindHeavestNodeInChildren(nodeLayer[maxRenderTimeIndex],
                             n => EstimateRenderTime(n, userCount)).nodeId;
                         if (heaviestId == -1)
                         {
-
-
+                            // 说明没有子节点了，无法拆分
+                            // Debug.Log($"CheckServiceDivision2(userCount={userCount}) 没有子节点了，无法拆分");
                             return null;
                         }
 
@@ -200,8 +218,8 @@ namespace SceneFlowTools.Runtime.Service
                 }
             }
 
-
-
+            // 这是一个多重约束多背包问题
+            // 暂时使用贪心法求解
             return AllocateNodeToServersGreedy(userCount, nodeLayers,
                 (a, b) => EstimateRenderTime(b, userCount).CompareTo(EstimateRenderTime(a, userCount)));
         }
@@ -225,7 +243,7 @@ namespace SceneFlowTools.Runtime.Service
         private List<ServerAllocationResult> AllocateNodeToServersGreedy(int userCount,
             List<List<AllocationNode>> allocNodeLayers, Comparison<AllocationNode> nodeComparison)
         {
-
+            // 拷贝一份，防止修改原数据，并且每一层排序
             List<List<AllocationNode>> nodeLayers = allocNodeLayers.Select(layer =>
             {
                 var newLayer = new List<AllocationNode>(layer);
@@ -257,25 +275,25 @@ namespace SceneFlowTools.Runtime.Service
                         nodeLayer[j] = null;
                     }
 
-
+                    // 如果这一层没有任何节点被分配，则不能在后续层分配，直接跳出
                     if (!allocatedInThisLayer) break;
-
+                    // 如果一整层都分配了，给当前层设为null
                     if (nodeLayer.All(n => n == null)) nodeLayers[i] = null;
-
+                    // 如果当前这层没分配完，后续层也不能分配，直接跳出
                     if (nodeLayers[i] != null) break;
                 }
 
                 results.Add(result);
             }
 
-
+            // 如果还有节点没有分配完，说明不可行
             if (nodeLayers.Any(layer => layer != null))
             {
                 Debug.Log(
                     $"AllocateNodeToServersGreedy(" +
                     $"userCount={userCount}, " +
                     $"layerCount={string.Join(",", allocNodeLayers.Select(x => x.Count))}) " +
-                    $"Illegal" +
+                    $"不可行" +
                     $"results={string.Join(",", results.Select(x => x.scenes.Count))}"
                 );
                 return null;
@@ -286,17 +304,17 @@ namespace SceneFlowTools.Runtime.Service
             return results;
         }
 
-
-
-
-
-
-
-
-
-
-
-
+        // 对于位于edge的场景森林，可以看作以下问题：
+        // 树上的分组覆盖问题：
+        // - 每个叶节点可以合并到兄弟节点或者父节点，问能否最终合并为n个满足约束的节点 （这里忽略了森林的特性，不完全等价）（完全不等价，如不能处理按深度分组的情况）
+        // - 将每个节点分配到一个组，要求每个组满足性能约束，并且每个组要么不与其他组联通，要么仅有一个联通，问能否划分为n个组
+        // 似乎是NP-hard的
+        // 这里先使用贪心法求解
+        // 先把整个树“合并”为一个超节点，每次挑选x最大（或者最合适）的子节点，将这个节点和子树分裂出去，直到当前超节点满足约束
+        // 然后递归地处理当前超节点的子节点，使得最终构建一棵超树，其中每个节点都满足约束
+        // （这样一来，每个节点不可能与父节点合并，只用处理兄弟合并的情况）
+        // 最后，将每一层的超节点尽可能合并
+        // 好像也不对，也无法处理按深度分组的情况
         private List<ServerAllocationResult> CheckServiceDivision3(int userCount)
         {
             List<AllocationNode> nodes = CollectEdgeFirstLayerNodes();
@@ -304,7 +322,7 @@ namespace SceneFlowTools.Runtime.Service
             {
                 if (!DoSplitNodes(userCount, node))
                 {
-
+                    // 说明无法拆分到满足要求
                     return null;
                 }
             }
@@ -320,14 +338,14 @@ namespace SceneFlowTools.Runtime.Service
             throw new NotImplementedException();
         }
 
-
+        // 将问题进一步限制为子树划分问题来求解
         private List<ServerAllocationResult> CheckServiceDivisionSubtree(int userCount)
         {
             Debug.Log($"CheckServiceDivisionSubtree(userCount={userCount})");
             List<int> roots = _edgeScenes
                 .Where(id => SubsceneUtils.GetDepth(Subscenes, id) == cloudSceneLayerCount)
                 .ToList();
-            List<(long gpuMemory, double renderTime, List<int> group)> divisionResults =
+            List<(double gpuMemory, double renderTime, List<int> group)> divisionResults =
                 DfsDivisionSubtreeFirstLevel(userCount, roots);
 
             List<ServerAllocationResult> results = new List<ServerAllocationResult>();
@@ -349,9 +367,9 @@ namespace SceneFlowTools.Runtime.Service
             CalcServiceDependencies(results);
 
 
-
-
-
+            // 如果两个服务依赖同一个服务，则可以合并
+            // 或者一个服务不依赖任何其他服务，也可以合并到任意一个服务
+            // 有问题，先注释掉
             // for (var i = 0; i < results.Count; i++)
             // {
             //     var server = results[i];
@@ -390,8 +408,8 @@ namespace SceneFlowTools.Runtime.Service
             if (results.Count > servers.Count)
             {
                 Debug.Log(
-                    $"CheckServiceDivisionSubtree(userCount={userCount}) false, service count {results.Count} ({string.Join(",", results.Select(x => x.scenes.Count))})");
-
+                    $"CheckServiceDivisionSubtree(userCount={userCount}) 不可行，结果服务数 {results.Count} ({string.Join(",", results.Select(x => x.scenes.Count))})");
+                // 输出依赖关系
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < results.Count; i++)
                 {
@@ -419,33 +437,33 @@ namespace SceneFlowTools.Runtime.Service
             alloc.deviceScenes = results;
         }
 
-        private List<(long gpuMemory, double renderTime, List<int> group)> DfsDivisionSubtreeFirstLevel(int userCount,
+        private List<(double gpuMemory, double renderTime, List<int> group)> DfsDivisionSubtreeFirstLevel(int userCount,
             List<int> roots)
         {
-            List<(long gpuMemory, double renderTime, List<int> group)> divisionResults = new();
-            List<(long gpuMemory, double renderTime, List<int> group)> childrenResults = new();
+            List<(double gpuMemory, double renderTime, List<int> group)> divisionResults = new();
+            List<(double gpuMemory, double renderTime, List<int> group)> childrenResults = new();
             foreach (int rootId in roots)
             {
                 childrenResults.Add(DfsDivisionSubtree(rootId, userCount, divisionResults));
             }
 
             childrenResults.Sort((a, b) => a.renderTime.CompareTo(b.renderTime));
-            long gpuMemory = 0;
+            double gpuMemory = 0;
             double renderTime = 0;
             List<int> group = new();
             foreach (var child in childrenResults)
             {
-                if (gpuMemory + child.gpuMemory + GetEstimatedGpuMemory(userCount) <= servers[0].gpuMemoryBytes &&
+                if (gpuMemory + child.gpuMemory <= servers[0].gpuMemoryBytes &&
                     renderTime + child.renderTime <= 1.0 / fpsLimit)
                 {
-
+                    // 合并
                     gpuMemory += child.gpuMemory;
                     renderTime += child.renderTime;
                     group.AddRange(child.group);
                 }
                 else
                 {
-
+                    // 不合并，形成一个新的服务
                     divisionResults.Add(child);
                 }
             }
@@ -453,7 +471,7 @@ namespace SceneFlowTools.Runtime.Service
             if (group.Count > 0)
                 divisionResults.Add((gpuMemory, renderTime, group));
             //
-
+            // // divisionResults 彼此之间可以合并
             // divisionResults.Sort((a, b) => b.renderTime.CompareTo(a.renderTime));
             // for (int i = 0; i < divisionResults.Count; i++)
             // {
@@ -465,7 +483,7 @@ namespace SceneFlowTools.Runtime.Service
             //         if (a.gpuMemory + b.gpuMemory <= servers[0].gpuMemory &&
             //             a.renderTime + b.renderTime <= 1.0 / fpsLimit)
             //         {
-
+            //             // 合并
             //             divisionResults[i] = (a.gpuMemory + b.gpuMemory, a.renderTime + b.renderTime,
             //                 a.group.Concat(b.group).ToList());
             //             divisionResults.RemoveAt(j);
@@ -476,17 +494,18 @@ namespace SceneFlowTools.Runtime.Service
             return divisionResults;
         }
 
-        private long GetEstimatedGpuMemory(int userCount)
+        private double GetEstimatedGpuMemory(double userCount)
         {
-            return userCount * 32L * 1024 * 1024;
+            return userCount * 3840 * 2160 * 2 * 4;
+            // return userCount * 32L * 1024 * 1024;
         }
 
-        private (long gpuMemory, double renderTime, List<int> group) DfsDivisionSubtree(int p, int userCount,
-            List<(long gpuMemory, double renderTime, List<int> group)> divisionResults)
+        private (double gpuMemory, double renderTime, List<int> group) DfsDivisionSubtree(int p, int userCount,
+            List<(double gpuMemory, double renderTime, List<int> group)> divisionResults)
         {
             Subscene node = Subscenes[p];
 
-            List<(long gpuMemory, double renderTime, List<int> group)> childrenResults = new();
+            List<(double gpuMemory, double renderTime, List<int> group)> childrenResults = new();
             foreach (int cid in node.subscenes)
             {
                 if (!_edgeScenes.Contains(cid)) continue;
@@ -495,22 +514,22 @@ namespace SceneFlowTools.Runtime.Service
 
             childrenResults.Sort((a, b) => a.renderTime.CompareTo(b.renderTime));
 
-            long gpuMemory = node.metrics.gpuMemory;
+            double gpuMemory = node.metrics.gpuMemory + GetEstimatedGpuMemory(node.userProbability * userCount);
             double renderTime = EstimateRenderTime(node, userCount);
             List<int> group = new List<int> { p };
             foreach (var child in childrenResults)
             {
-                if (gpuMemory + child.gpuMemory + GetEstimatedGpuMemory(userCount) <= servers[0].gpuMemoryBytes &&
+                if (gpuMemory + child.gpuMemory <= servers[0].gpuMemoryBytes &&
                     renderTime + child.renderTime <= 1.0 / fpsLimit)
                 {
-
+                    // 合并
                     gpuMemory += child.gpuMemory;
                     renderTime += child.renderTime;
                     group.AddRange(child.group);
                 }
                 else
                 {
-
+                    // 不合并，形成一个新的服务
                     divisionResults.Add(child);
                 }
             }
@@ -522,40 +541,40 @@ namespace SceneFlowTools.Runtime.Service
         {
             while (node.metrics.gpuMemory > servers[0].gpuMemoryBytes)
             {
-
+                // 如果gpu内存超过限制，则拆分
                 int heaviestId = FindHeavestNodeInChildren(node, n => n.metrics.gpuMemory).nodeId;
                 if (heaviestId == -1)
                 {
-
+                    // 说明没有子节点了，无法拆分
                     return false;
                 }
 
-
+                // 拆出开销最大的子节点，形成一个新的节点
                 SplitAllocationNodeToChild(node, heaviestId);
             }
 
             while (EstimateRenderTime(node, userCount) > 1.0 / fpsLimit)
             {
-
+                // 如果渲染时间超过限制，则拆分
                 int heaviestId = FindHeavestNodeInChildren(node, n => EstimateRenderTime(n, userCount)).nodeId;
                 if (heaviestId == -1)
                 {
-
+                    // 说明没有子节点了，无法拆分
                     return false;
                 }
 
-
+                // 拆出渲染时间最大的子节点，形成一个新的节点
                 SplitAllocationNodeToChild(node, heaviestId);
             }
 
-
+            // 当前节点已经满足要求，递归处理子节点
             foreach (var child in node.children)
             {
                 if (!DoSplitNodes(userCount, child))
                     return false;
             }
 
-
+            // 成功，使所有节点都满足要求
             return true;
         }
 
@@ -566,7 +585,7 @@ namespace SceneFlowTools.Runtime.Service
                 server.relyOnServerId = -1;
             }
 
-
+            // 计算服务间依赖关系
             for (int i = 0; i < services.Count; i++)
             {
                 var server = services[i];
@@ -587,7 +606,7 @@ namespace SceneFlowTools.Runtime.Service
             }
         }
 
-
+        // A依赖B，当且仅当存在A中的场景的父场景在B中
         private bool IsRelyOn(HashSet<int> scenesA, HashSet<int> scenesB)
         {
             foreach (var sceneId in scenesA)
@@ -693,7 +712,7 @@ namespace SceneFlowTools.Runtime.Service
             return node;
         }
 
-
+        // 收集子树p中的所有edge上的场景
         private HashSet<int> CollectSubtreeScenesInEdge(int p)
         {
             if (!_edgeScenes.Contains(p)) throw new Exception("p must be in edge scenes");
@@ -758,27 +777,27 @@ namespace SceneFlowTools.Runtime.Service
     [Serializable]
     public class ServerAllocationResult
     {
-        public List<int> rootScenes = new();
-        public List<int> scenes = new();
-        public List<int> deviceScenes = new();
+        public List<int> rootScenes = new(); // 根场景
+        public List<int> scenes = new(); // 场景
+        public List<int> deviceScenes = new(); // 设备场景
         public double renderTime;
-        public long gpuMemory;
-        public int relyOnServerId = -1;
+        public double gpuMemory;
+        public int relyOnServerId = -1; // 依赖的服务器ID，-1表示不依赖
     }
 
     [Serializable]
     public class AllocationResult
     {
-        public int maxUserCount;
-        public List<int> cloudScenes;
-        public List<int> deviceScenes;
+        public int maxUserCount; // 支持的最大用户数
+        public List<int> cloudScenes; // 云端场景
+        public List<int> deviceScenes; // 设备场景
 
-        public List<ServerAllocationResult> edgeServers;
+        public List<ServerAllocationResult> edgeServers; // 边缘服务器
     }
 
     /// <summary>
-
-
+    /// 服务器信息（指的是虚拟化后的逻辑服务器）
+    /// 每个服务器只承载一个微服务
     /// </summary>
     [Serializable]
     public class ServerInfo

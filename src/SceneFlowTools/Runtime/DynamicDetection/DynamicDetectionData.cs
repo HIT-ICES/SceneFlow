@@ -57,4 +57,12 @@ namespace SceneFlowTools.Runtime.DynamicDetection
         // public string Description;
         // public string ExternMethods;
     }
+
+    [Serializable]
+    public class DynamicDetectionResult
+    {
+        public List<DynamicInfo> results;
+        public int promptTokens;
+        public int completionTokens;
+    }
 }

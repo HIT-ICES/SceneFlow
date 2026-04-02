@@ -12,7 +12,7 @@ wheels/
 .venv
 
 
-figure_cache
+figures
 logs
 cache
 

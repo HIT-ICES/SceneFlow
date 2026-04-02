@@ -10,7 +10,7 @@ namespace SceneFlowTools.Editor
     {
         public override void OnInspectorGUI()
         {
-
+            // 保留原有字段显示
             DrawDefaultInspector();
 
             // EditorUtility.DisplayProgressBar();

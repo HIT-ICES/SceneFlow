@@ -1,7 +1,7 @@
 import hashlib
 import os
 from typing import Union
-import time
+import time  # 添加计时
 
 import numpy as np
 from fastapi.encoders import jsonable_encoder
@@ -15,7 +15,7 @@ from middleware.request_gc import GCMiddleware
 from middleware.request_gzip import GZipRequestMiddleware, DecompressRequestMiddleware
 from utils import dataset
 
-
+# 日志引入（新增）
 import logging_config  # noqa: F401
 from loguru import logger
 
@@ -70,29 +70,43 @@ def upload(data: bytes = Body(...)):
 
 @app.post("/scene_division")
 def scene_division(params: SceneDivisionParams):
+    timestamp = time.monotonic()
     logger.info("scene_division: scene_info_path={} method={}, extra={}", params.scene_info_path, params.method,
                 params.extra)
     params.method = params.method.upper()
     scene_info = load_scene_info(params)
-    if params.method == "DBSCAN" or params.method == "VOXELDBSCAN":
-        if params.method == "DBSCAN":
-            data_v, data_id = dataset.load_verticals(
-                scene_info,
-                downsample_step=params.extra.get("downsample_step") or 0.5
-            )
-        else:
-            data_v, data_id = dataset.load_voxels(
-                scene_info,
-                downsample_step=params.extra.get("downsample_step") or 0.5
-            )
+
+    if "VOXEL" in params.method:
+        data_v, data_id = dataset.load_voxels(
+            scene_info,
+            downsample_step=params.extra.get("downsample_step") or 0.5
+        )
+    else:
+        data_v, data_id = dataset.load_verticals(
+            scene_info,
+            downsample_step=params.extra.get("downsample_step") or 0.5
+        )
+
+
+    if "DBSCAN" in params.method:
         labels = clusters.dbscan(
             data_v, data_id, eps=params.extra.get("eps") or 2,
             min_samples=params.extra.get("min_samples") or 10,
             metric="euclidean"
         )
-        result = dataset.group_object_by_labels(data_id, labels)
+    elif "KMEANS" in params.method:
+        labels = clusters.kmeans(
+            data_v, data_id, n_clusters=params.extra.get("num_clusters") or 5
+        )
+    elif "GRID" in params.method:
+        labels = clusters.grid(data_v, data_id)
     else:
         raise ValueError("Unsupported method.")
+
+    result = dataset.group_object_by_labels(data_id, labels)
+
+    logger.info("scene_division: method={} time_cost={:.2f}s", params.method, time.monotonic() - timestamp)
+
     return jsonable_encoder(result, custom_encoder={np.int64: int, np.float64: float})
 
 
@@ -105,10 +119,9 @@ class DynamicDetectionParams(BaseModel):
 @app.post("/dynamic_detection")
 async def dynamic_detection(params: DynamicDetectionParams):
     logger.info("start script={}", params.script_name)
-    from dynamic_detection import detect_script
     start_time = time.monotonic()
     retry_count = 3
-    result = None
+    result = None  # 初始化
     while retry_count > 0:
         try:
             retry_count -= 1
@@ -126,9 +139,9 @@ async def dynamic_detection(params: DynamicDetectionParams):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {exc}")
     import traceback
-
+    logger.error(f"Unhandled exception: {'\n'.join(traceback.format_exception(exc))}")
+    # 获取完整的异常堆栈信息
     tb_str = ''.join(traceback.format_exception(exc))
     return JSONResponse(
         status_code=500,
@@ -136,6 +149,6 @@ async def global_exception_handler(request: Request, exc: Exception):
             "error": str(exc),
             "type": type(exc).__name__,
             "args": exc.args,
-            "traceback": tb_str,
+            "traceback": tb_str,  # 打印堆栈信息（开发调试用，生产环境慎用）
         }
     )

@@ -52,6 +52,24 @@ namespace SceneFlowTools.Runtime
             }
             return result;
         }
+        
+        
+        public static void ShuffleList<T>(List<T> list, System.Random random)
+        {
+            int n = list.Count;
+            for (int i = n - 1; i > 0; i--)
+            {
+                int j = random.Next(0, i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
+        }
+        
+        public static List<T> SampleList<T>(List<T> list, int sampleCount, System.Random random)
+        {
+            List<T> copy = new List<T>(list);
+            ShuffleList(copy, random);
+            return copy.GetRange(0, sampleCount);
+        }
 
         // public static int AlignFloor(int value, int alignment)
         // {

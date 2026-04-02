@@ -20,6 +20,10 @@ Dynamic types are categorized into two types:
 1. Players passively observe object changes (dynamicType=1): Scripts dynamically alter an object's rendering without direct user triggering, yet impact the user's visual experience. Examples include animations driven by the global clock and environmental effects.
 2. Player interacts in real-time and observes object changes (dynamicType=2): Scripts engage in real-time bidirectional interaction with the user, altering object rendering where visual states are directly driven by local user input.
 
+Note: You should be conservative in your assessments, especially when determining whether an object is dynamic. As long as the script has the potential to modify the object, you should at least set `dynamicType=1`; if user interaction is involved, set `dynamicType=2`.
+If the object a to which the script is attached receives player interaction and then manipulates the rendering of object b, then object a has dynamicType=2 and object b has dynamicType=1.
+You should only consider a script to be static if you are certain that it does not accept user input and does not alter the rendering.
+
 If the script is user-defined or in third-party libraries, you will get full code.
 If the script is builtin in Unity or other well-known libraries, you will get the full name and its serialize fields, you can assume its behavior according to your knowledge.
 
@@ -32,7 +36,6 @@ Types:
 - type="field": The object is referenced via a field; name is the field name; no description
 - type="this": The GameObject to which this script is attached; name is "this"; no description
 - type="hierarchy": The object is found via scene hierarchy; name is the object name; no description
-- type="other": Other types; no name; description is what the object is.
 """
 
 AGENT_SUMMARY_DESCRIPTION = """
@@ -134,7 +137,10 @@ class DynamicDetectionObject(BaseModel):
     extern_methods: Optional[list[str]] = None
 class DynamicDetectionResultMessage(BaseModel):
     results: list[DynamicDetectionObject]
-
+class DynamicDetectionResult(BaseModel):
+    results: list[DynamicDetectionObject]
+    promptTokens: int
+    completionTokens: int
 
 
 class DynamicDetectionAgent(AssistantAgent):

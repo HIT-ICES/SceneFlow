@@ -23,7 +23,9 @@ namespace SceneFlowTools.Editor.Service
             {
                 EditorUtility.SetDirty(sa);
                 EditorSceneManager.MarkSceneDirty(sa.gameObject.scene);
+                double time =  EditorApplication.timeSinceStartup;
                 sa.DoAllocate();
+                Debug.Log($"Service allocation done. time_cost={EditorApplication.timeSinceStartup - time:F2} seconds");
             }
 
             if (GUILayout.Button("Generate Configs"))
@@ -41,7 +43,8 @@ namespace SceneFlowTools.Editor.Service
                     {
                         isService = true,
                         isCloud = false,
-                        activeScenes = x.scenes
+                        // activeScenes = x.scenes,
+                        activeObjects = sa.renderConfigManager.sceneConfig.CollectObjects(x.scenes).ToList(),
                     };
                     string filePath = Path.Combine(configPath, $"edge-{i}-service_config.json");
                     File.WriteAllText(filePath, JsonUtility.ToJson(serviceConfig, true));
@@ -50,20 +53,23 @@ namespace SceneFlowTools.Editor.Service
                     {
                         isService = false,
                         isCloud = false,
-                        activeScenes = x.deviceScenes
+                        // activeScenes = x.deviceScenes,
+                        activeObjects = sa.renderConfigManager.sceneConfig.CollectObjects(x.deviceScenes).ToList(),
                     };
                     string clientFilePath = Path.Combine(configPath, $"client-{i}-service_config.json");
                     System.IO.File.WriteAllText(clientFilePath, JsonUtility.ToJson(clientConfig, true));
 
+                    List<int> cloudScenes = MyMathUtils
+                        .GenerateRange(0, sa.renderConfigManager.sceneConfig.scenes.Count)
+                        .Except(x.scenes)
+                        .Except(x.deviceScenes)
+                        .ToList();
                     ServiceConfig cloudConfig = new ServiceConfig
                     {
                         isService = true,
                         isCloud = true,
-                        activeScenes = MyMathUtils
-                            .GenerateRange(0, sa.renderConfigManager.sceneConfig.scenes.Count)
-                            .Except(x.scenes)
-                            .Except(x.deviceScenes)
-                            .ToList()
+                        // activeScenes = cloudScenes,
+                        activeObjects = sa.renderConfigManager.sceneConfig.CollectObjects(cloudScenes).ToList(),
                     };
                     // cloudConfig.exceptedScenes = x.scenes.Union(x.deviceScenes).ToList();
                     string cloudFilePath = Path.Combine(configPath,  $"cloud-{i}-service_config.json");
@@ -72,7 +78,9 @@ namespace SceneFlowTools.Editor.Service
 
                 ServiceConfig clientGlobalConfig = new ServiceConfig();
                 clientGlobalConfig.isService = false;
-                clientGlobalConfig.activeScenes = sa.allocationResult.deviceScenes;
+                // clientGlobalConfig.activeScenes = sa.allocationResult.deviceScenes;
+                clientGlobalConfig.activeObjects = sa.renderConfigManager.sceneConfig.CollectObjects(sa.allocationResult.deviceScenes)
+                    .ToList();
                 string globalClientFilePath = Path.Combine(configPath, "client-g-service_config.json");
                 File.WriteAllText(globalClientFilePath, JsonUtility.ToJson(clientGlobalConfig, true));
                 Debug.Log("Service configs generated.");

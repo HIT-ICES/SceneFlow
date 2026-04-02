@@ -5,16 +5,18 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeRotationI : MonoBehaviour
     {
-
+        // [DeleteBeforeDetect] 示例：在玩家指向时触发旋转，作用于挂载对象和引用对象
         public Transform targetTransform;
         public Vector3 angularSpeed = new Vector3(0f, 90f, 0f);
 
-        private bool isPointed = false;
+        private bool isSelfPointed;
+        private bool isTargetPointed;
+        private XRRayInteractor rayInteractor;
 
         void OnEnable()
         {
-
-            XRRayInteractor rayInteractor = FindObjectOfType<XRRayInteractor>();
+            // [DeleteBeforeDetect] 获取 XRRayInteractor，并订阅事件
+            rayInteractor = FindObjectOfType<XRRayInteractor>();
             if (rayInteractor != null)
             {
                 rayInteractor.hoverEntered.AddListener(OnHoverEntered);
@@ -24,45 +26,63 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void OnDisable()
         {
-
-            XRRayInteractor rayInteractor = FindObjectOfType<XRRayInteractor>();
+            // [DeleteBeforeDetect] 取消订阅事件
             if (rayInteractor != null)
             {
                 rayInteractor.hoverEntered.RemoveListener(OnHoverEntered);
                 rayInteractor.hoverExited.RemoveListener(OnHoverExited);
             }
+
+            isSelfPointed = false;
+            isTargetPointed = false;
         }
 
         private void OnHoverEntered(HoverEnterEventArgs args)
         {
+            Transform hoveredTransform = args.interactableObject.transform;
 
-            if (args.interactableObject.transform == transform)
+            // [DeleteBeforeDetect] 如果是玩家指向到 self 对象，开始旋转
+            if (hoveredTransform == transform)
             {
-                isPointed = true;
+                isSelfPointed = true;
+            }
+
+            // [DeleteBeforeDetect] 如果是玩家指向到 target 对象，开始旋转
+            if (targetTransform != null && hoveredTransform == targetTransform)
+            {
+                isTargetPointed = true;
             }
         }
 
         private void OnHoverExited(HoverExitEventArgs args)
         {
+            Transform hoveredTransform = args.interactableObject.transform;
 
-            if (args.interactableObject.transform == transform)
+            // [DeleteBeforeDetect] 当玩家停止指向 self 对象时，停止旋转
+            if (hoveredTransform == transform)
             {
-                isPointed = false;
+                isSelfPointed = false;
+            }
+
+            // [DeleteBeforeDetect] 当玩家停止指向 target 对象时，停止旋转
+            if (targetTransform != null && hoveredTransform == targetTransform)
+            {
+                isTargetPointed = false;
             }
         }
 
         void Update()
         {
-
-            if (isPointed)
+            // [DeleteBeforeDetect] self 被指向时旋转
+            if (isSelfPointed)
             {
                 transform.Rotate(angularSpeed * Time.deltaTime, Space.Self);
+            }
 
-
-                if (targetTransform != null)
-                {
-                    targetTransform.Rotate(-angularSpeed * Time.deltaTime, Space.Self);
-                }
+            // [DeleteBeforeDetect] target 被指向时旋转
+            if (isTargetPointed && targetTransform != null)
+            {
+                targetTransform.Rotate(-angularSpeed * Time.deltaTime, Space.Self);
             }
         }
     }

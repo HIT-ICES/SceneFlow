@@ -45,7 +45,7 @@ def load_voxels(raw_data: dict, downsample_step=0.5) -> tuple[np.ndarray, np.nda
     :return: (raw_data, data_verticals, data_id)
     """
     logger.info(f"load: [{len(raw_data['objects'])}] objects")
-    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")
+    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")  # 打印前10个体素数据
     data = [
         [cluster_utils.downsample_data(x["voxels"], downsample_step), x["id"]]
         for x in raw_data["objects"]
@@ -71,7 +71,7 @@ def load_voxels_new(raw_data: dict, downsample_step=0.5) -> tuple[np.ndarray, di
     :return: (raw_data, data_verticals, data_id)
     """
     logger.info(f"load: [{len(raw_data['objects'])}] objects")
-    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")
+    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")  # 打印前10个体素数据
     data = [
         [x["voxels"], x["id"]]
         for x in raw_data["objects"]
@@ -98,23 +98,23 @@ def load_voxels_new(raw_data: dict, downsample_step=0.5) -> tuple[np.ndarray, di
 
 def find_object_labels(data_id: np.ndarray, labels: np.ndarray) -> dict:
     """
-    get obj-label map by vertex ids and vertex labels
-    :param data_id: vertex IDs
-    :param labels: labels for each vertex
-    :return: a dictionary with vertex ID as key and corresponding label as value
+    根据顶点id和顶点label获取对象--标签的映射关系
+    :param data_id: 顶点的ID
+    :param labels: 每个顶点的标签
+    :return: 一个字典，键为顶点ID，值为对应的标签
     """
     id_label_map = {}
     for vid, label in zip(data_id, labels):
         if vid not in id_label_map:
             id_label_map[vid] = label
         elif id_label_map[vid] != label:
-            raise ValueError(f"Vertex ID {vid} corresponds to multiple labels: {id_label_map[vid]} and {label}")
+            raise ValueError(f"顶点ID {vid} 对应多个标签: {id_label_map[vid]} 和 {label}")
     return id_label_map
 
 
 def group_object_by_labels(data_id: np.ndarray, labels: np.ndarray) -> list:
     """
-    Get a list of objects grouped by labels based on vertex IDs and vertex labels
+    根据顶点id和顶点label获取按照标签分组的对象列表
     """
     id_label_map = find_object_labels(data_id, labels)
     label_groups = {}

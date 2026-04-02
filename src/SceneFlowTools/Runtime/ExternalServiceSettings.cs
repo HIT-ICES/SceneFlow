@@ -26,7 +26,7 @@ namespace SceneFlowTools.Runtime
                     serviceHost = "localhost:8000";
                     break;
                 case PredefinedServiceHost.ExperimentalServer:
-                    serviceHost = "localhost:8000";
+                    serviceHost = "rick-ices:8000";
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

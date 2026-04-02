@@ -1,47 +1,41 @@
-I now need to generate some Unity scripts that can *"dynamically change an object's rendering result"*.  
-*"Dynamically change an object's rendering result"* includes, but is not limited to, modifying properties such as position, scale, rotation, material, color, texture, modifying shaders, or controlling object visibility, etc.
+我现在需要生成一些“动态改变物体渲染结果”的Unity脚本，“动态改变物体渲染结果”包括但不限于修改属性，例如位置、缩放、旋转、材质、颜色、纹理，修改shader，或控制对象的可见性等等。
 
-We will limit the objects that can be modified by the scripts to two categories:  
-1. The object to which the script itself is attached.  
-2. The object referenced via public fields in the script.  
+我们将脚本能修改的对象限制为两类：
+1. 脚本本身挂载到的对象
+2. 脚本通过public字段引用的对象
 
-First, please list a table showing the possible ways that a script could *"dynamically change an object's rendering result"*. You should provide a brief description for each method.
+首先，请你列一个表，列出脚本可能通过哪些方式来“动态改变物体渲染结果”，你要对每一种方式进行简要说明。
 
-Then, for each method, please generate a Unity C# script.  
-The name of the script should start with `Sample` followed by the method's name, for example `SampleChangePosition`.
+然后，对于每一种方式，请你生成一个Unity C#脚本示例，脚本要包含必要的注释，对脚本的功能进行简要说明。
+脚本的名称以Sample开头，后面跟上方式的名称，例如SampleChangePosition。
+注意你输出的脚本要使用代码块包裹。
+注意所有注释必须单独成行，并且以"[DeleteBeforeDetect]"开头，以便处理。
+注意每个脚本必须包含上述几类对象的引用和操作。
 
-Note:  
-- The code output must be enclosed in code blocks.  
-- All comments must be on separate lines and start with `[DeleteBeforeDetect]`.  
-- Each script must include references and operations for the two categories of objects mentioned above.
 
----
 
-After that, I will provide you with some Unity script code, and you will need to obfuscate it. Specifically, in these scripts you should insert fields and methods that are **not used for "dynamically changing an object's rendering result"**, but still ensure that the script can run correctly.  
-*"Dynamically changing an object's rendering result"* includes, but is not limited to, modifying properties such as position, scale, rotation, material, color, texture, modifying shaders, or controlling object visibility, etc.
+----
 
-You need to use **meaningful variable/method names** instead of random strings.  
-Do not generate completely useless code — the inserted fields and methods should have meaningful functions, preferably with some side effects, but must not affect the script's main functionality.
+我将给你一些Unity脚本代码，你需要混淆这些代码，具体而言，在这些脚本里插入一些字段和方法，这些字段和方法不用于“动态改变物体渲染结果”，但要确保脚本依然能正常工作。
+“动态改变物体渲染结果”包括但不限于修改属性，例如位置、缩放、旋转、材质、颜色、纹理，修改shader，或控制对象的可见性等等。
+你需要使用有意义的变量/方法名称，而不是随机字符串。
+注意不要生成完全无用的代码，插入的字段和方法要有意义，最好有一些副作用，但不要影响脚本的主要功能。
+注意你要保留原脚本的代码和注释，新加入的注释要以"[DeleteBeforeDetect] 混淆："开头。
+你需要加入一些和“动态改变物体渲染结果”无关的逻辑，例如：
+1. 修改名称与标识
+2. 修改物理属性
+3. 处理输入
+4. 修改脚本内部数据与逻辑状态（计时器、缓存、状态机变量等）
+   
+你生成的代码要使用代码块包裹。
+第一个脚本如下：
 
-You must keep the original code and comments intact.  
-All newly added comments must start with `[DeleteBeforeDetect] Obfuscation:`.  
-Examples of logic that is unrelated to *"dynamically changing an object's rendering result"* include:  
-1. Modifying names and identifiers.  
-2. Modifying physical properties.  
-3. Handling input.  
-4. Modifying internal data and logical states (timers, caches, state machine variables, etc.)
 
-The generated code must be enclosed in code blocks.
+----
 
----
-
-I currently have some Unity scripts that *"dynamically change an object's rendering result"*, but I now need corresponding **negative scripts**.  
-These negative scripts must **not** *"dynamically change an object's rendering result"*, but should look as similar as possible to the original scripts and appear to be capable of *"dynamically changing an object's rendering result"*.
-
-*"Dynamically changing an object's rendering result"* includes, but is not limited to, modifying properties such as position, scale, rotation, material, color, texture, modifying shaders, or controlling object visibility, etc.
-
-Notes:  
-- All comments must start with `[DeleteBeforeDetect]`.  
-- The code must be enclosed in code blocks.  
-- Your comments may describe the functionality of the script, but variable names must **not** imply that the changes are fake — for example, do not use `unused`, `fake`, `simulated`, `temp` in variable names.
-
+我目前有一些“动态改变物体渲染结果”的Unity脚本，我现在需要相应的“阴性”脚本，这些阴性脚本不能“动态改变物体渲染结果”，但要尽量和原脚本相似，并看起来很像一个能够“动态改变物体渲染结果”的脚本。
+“动态改变物体渲染结果”包括但不限于修改属性，例如位置、缩放、旋转、材质、颜色、纹理，修改shader，或控制对象的可见性等等。
+注意你的注释要以"[DeleteBeforeDetect]"开头。
+注意你输出的脚本要使用代码块包裹。
+注意你的注释中可以描述脚本的功能，但变量名中不能体现你只是要“假装修改”，比如不要使用unused、fake、simulated、temp等变量名。
+第一个脚本如下：

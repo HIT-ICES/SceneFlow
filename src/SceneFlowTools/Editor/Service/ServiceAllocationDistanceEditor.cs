@@ -21,9 +21,12 @@ namespace SceneFlowTools.Editor.Service
 
             if (GUILayout.Button("Allocate Service by Distance"))
             {
+                double time = EditorApplication.timeSinceStartup;
                 ServiceAllocationDistance tg = (ServiceAllocationDistance)target;
                 tg.result = DoAlloc();
                 SaveConfig(tg.result);
+                Debug.Log(
+                    $"Distance-based service allocation complete, time_cost = {EditorApplication.timeSinceStartup - time:F2} seconds");
                 EditorUtility.SetDirty(tg);
             }
 
@@ -86,7 +89,10 @@ namespace SceneFlowTools.Editor.Service
                 }
 
                 bool insideBounds = objBounds?.Contains(pos, true, false, true) == true;
-                bool containsBounds = objBounds != null && new Bounds(pos, new Vector3((float)tg.edgeDistance, 10000, (float)tg.edgeDistance)).Contains(objBounds.Value);
+                bool containsBounds = objBounds != null &&
+                                      new Bounds(pos,
+                                              new Vector3((float)tg.edgeDistance, 10000, (float)tg.edgeDistance))
+                                          .Contains(objBounds.Value);
                 bool inside = !insideBounds || containsBounds;
                 if (dist <= tg.edgeDistance && (tg.deviceIncludeInside || !inside))
                 {
@@ -102,7 +108,7 @@ namespace SceneFlowTools.Editor.Service
             }
 
             var dynamicObjs = tg.dynamicDetectionManager.data.ObjectsDynamicInfo
-                .Where(x => x.DynamicType .IsDynamic())
+                .Where(x => x.DynamicType.IsDynamic())
                 .Select(x => x.ObjectId).ToList();
             result.deviceObjects = result.deviceObjects.Union(dynamicObjs).ToList();
             result.edgeObjects.RemoveAll(x => dynamicObjs.Contains(x));

@@ -21,11 +21,11 @@ namespace SceneFlowTools.Runtime
     [Serializable]
     public class VoxelizeOptions
     {
-        public float voxelSize = 0.2f;
+        public float voxelSize = 0.2f; // 体素大小，单位为unit
 
-        public int girdSize = 10;
+        public int girdSize = 10; // 体素化存储时的网格大小，单位为体素
 
-        public float roomSizeThreshold = 5f;
+        public float roomSizeThreshold = 5f; // 房间大小阈值，单位为unit
 
         public BoundsInt bounds;
 
@@ -57,7 +57,7 @@ namespace SceneFlowTools.Runtime
             voxelObjectIndex = new int[size * size * size];
             for (int i = 0; i < voxelObjectIndex.Length; i++)
             {
-                voxelObjectIndex[i] = -1;
+                voxelObjectIndex[i] = -1; // -1表示未占用
             }
         }
 
@@ -110,17 +110,17 @@ namespace SceneFlowTools.Runtime
     // [Serializable]
     // public struct Voxel
     // {
-
-
+    //     public int objectIndex; // 占用的物体索引，-1表示未占用
+    //     public int regionId; // 所属区域ID
     // }
 
     [Serializable]
     public class Region
     {
-        public int id;
+        public int id; // 区域ID
         public int sizeInVoxels;
-        public List<int> objects;
-        public Vector3Int startVoxel;
+        public List<int> objects; // 区域内的物体索引列表
+        public Vector3Int startVoxel; // 区域起始体素坐标
     }
 
     public static class VoxelizerCPU
@@ -165,13 +165,13 @@ namespace SceneFlowTools.Runtime
                 Vector3[] vertices = mesh.sharedMesh.vertices;
                 int[] triangles = mesh.sharedMesh.triangles;
 
-
+                // 将顶点从局部空间转换到世界空间
                 for (int i = 0; i < vertices.Length; i++)
                 {
                     vertices[i] = mesh.transform.TransformPoint(vertices[i]);
                 }
 
-
+                // 体素化三角形
                 List<Vector3Int> occupiedVoxels = new List<Vector3Int>();
                 Parallel.For(0, triangles.Length / 3, i =>
                 {
@@ -185,10 +185,10 @@ namespace SceneFlowTools.Runtime
                     }
                 });
 
-
+                // 将占据的体素转换为体素网格
                 foreach (Vector3Int voxel in occupiedVoxels)
                 {
-                    Vector3Int index = voxel - options.bounds.min;
+                    Vector3Int index = voxel - options.bounds.min; // 转换为体素索引
                     result.SetVoxel(index, mIndex);
                 }
             }
@@ -209,7 +209,7 @@ namespace SceneFlowTools.Runtime
             Debug.Log($"total: {visit.Count} voxels to visit");
             Debug.Log($"needs {visit.Count / 8.0 / 1024.0 / 1024.0} MB memory for visit array");
             r.regions = new List<Region>();
-
+            // 队列，每次复用
             Queue<Vector3Int> queue = new();
             for (int x = 0; x < size.x; x++)
             {
@@ -220,7 +220,7 @@ namespace SceneFlowTools.Runtime
                         Vector3Int index = new Vector3Int(x, y, z);
                         if (visit[MyMathUtils.GetIndex(size, index)]) continue;
                         if (r.GetVoxel(index) != -1) continue;
-
+                        // 找到一个没访问、没有被三角形占据的体素，开始区域搜索
 
                         Region region = new Region
                         {
@@ -230,18 +230,18 @@ namespace SceneFlowTools.Runtime
                         };
 
                         HashSet<int> objectsInRegion = new HashSet<int>();
-
+                        // 深度优先搜索遍历区域
                         queue.Clear();
                         queue.Enqueue(index);
                         visit[MyMathUtils.GetIndex(size, index)] = true;
                         region.sizeInVoxels++;
-
+                        // 如果是与边界链接的区域，则直接忽略
                         // bool flagIsOuter = false;
                         while (queue.Count > 0)
                         {
                             Vector3Int current = queue.Dequeue();
 
-
+                            // 标记为已访问
                             // visit[MyMathUtils.GetIndex(size, current)] = true;
                             if (!visit[MyMathUtils.GetIndex(size, current)])
                             {
@@ -255,9 +255,9 @@ namespace SceneFlowTools.Runtime
                                 !girdVisit[MyMathUtils.GetIndex(r.gridSize, currentGirdIndex)])
                             {
                                 girdVisit[MyMathUtils.GetIndex(r.gridSize, currentGirdIndex)] = true;
-
-
-
+                                // 说明当前gird全是空的
+                                // 这样一来，可以将其内部全部设置为已访问
+                                // 表面一层不设置，后续通过一般的搜索访问
                                 Vector3Int girdMin = r.GetVoxelIndex(current).girdIndex * r.options.girdSize;
                                 Vector3Int girdMax = Vector3Int.Min(girdMin + Vector3Int.one * r.options.girdSize,
                                     size);
@@ -276,21 +276,21 @@ namespace SceneFlowTools.Runtime
                                 }
                             }
 
-
+                            // 检查相邻体素
                             foreach (var dir in MyMathUtils.Directions6)
                             {
                                 Vector3Int neighbor = current + dir;
                                 if (!r.CheckVoxelIndex(neighbor)) continue;
                                 if (visit[MyMathUtils.GetIndex(size, neighbor)]) continue;
                                 int neighborVoxelObjIdx = r.GetVoxel(neighbor);
-
+                                //收集边界上的物体索引
                                 if (neighborVoxelObjIdx != -1)
                                 {
                                     objectsInRegion.Add(neighborVoxelObjIdx);
                                     continue;
                                 }
 
-
+                                // 没访问且不是墙，添加到栈中
                                 queue.Enqueue(neighbor);
                                 visit[MyMathUtils.GetIndex(size, neighbor)] = true;
                                 region.sizeInVoxels++;
@@ -311,7 +311,7 @@ namespace SceneFlowTools.Runtime
             r.regions.Sort((a, b) => b.sizeInVoxels.CompareTo(a.sizeInVoxels));
             for (int i = 0; i < r.regions.Count; i++)
             {
-                r.regions[i].id = i;
+                r.regions[i].id = i; // 设置区域ID
             }
         }
 
@@ -326,7 +326,7 @@ namespace SceneFlowTools.Runtime
             r.regions.Sort((a, b) => b.sizeInVoxels.CompareTo(a.sizeInVoxels));
             for (int i = 0; i < r.regions.Count; i++)
             {
-                r.regions[i].id = i;
+                r.regions[i].id = i; // 设置区域ID
             }
         }
 
@@ -402,7 +402,7 @@ namespace SceneFlowTools.Runtime
                         if (visit[getVisitIndex(index)]) continue;
                         if (r.GetVoxel(index) != -1) continue;
 
-
+                        // 找到一个没访问、没有被三角形占据的体素，开始区域搜索
                         Region region = new Region
                         {
                             id = -1,
@@ -411,18 +411,18 @@ namespace SceneFlowTools.Runtime
                         };
 
                         HashSet<int> objectsInRegion = new HashSet<int>();
-
+                        // 深度优先搜索遍历区域
                         Stack<Vector3Int> stack = new Stack<Vector3Int>();
                         stack.Push(index);
                         while (stack.Count > 0)
                         {
                             Vector3Int current = stack.Pop();
 
-
+                            // 标记为已访问
                             visit[getVisitIndex(current)] = true;
 
                             region.sizeInVoxels++;
-
+                            // 更新正负面区域
                             if (current.z == start + length - 1)
                             {
                                 result.positiveFace[current.x + current.y * size.x] = region;
@@ -432,7 +432,7 @@ namespace SceneFlowTools.Runtime
                                 result.negativeFace[current.x + current.y * size.x] = region;
                             }
 
-
+                            // 检查相邻体素
                             foreach (var dir in MyMathUtils.Directions6)
                             {
                                 Vector3Int neighbor = current + dir;
@@ -440,7 +440,7 @@ namespace SceneFlowTools.Runtime
                                 if (neighbor.z < start || neighbor.z >= start + length) continue;
                                 if (visit[getVisitIndex(neighbor)]) continue;
                                 int neighborVoxelObjIdx = r.GetVoxel(neighbor);
-
+                                //收集边界上的物体索引
                                 if (neighborVoxelObjIdx != -1)
                                 {
                                     objectsInRegion.Add(neighborVoxelObjIdx);
@@ -458,7 +458,7 @@ namespace SceneFlowTools.Runtime
                                     continue;
                                 }
 
-
+                                // 没访问且不是墙，添加到栈中
                                 stack.Push(neighbor);
                             }
                         }
@@ -587,7 +587,7 @@ namespace SceneFlowTools.Runtime
 
             return new Region
             {
-                id = -1,
+                id = -1, // 新区域ID可以根据需要设置
                 sizeInVoxels = a.sizeInVoxels + b.sizeInVoxels,
                 objects = combinedObjects.ToList(),
                 startVoxel = Vector3Int.Min(a.startVoxel, b.startVoxel)
@@ -596,8 +596,8 @@ namespace SceneFlowTools.Runtime
 
         // public class GridStepResult
         // {
-
-
+        //     public List<GridRegion> gridRegions; // 存储每个网格区域
+        //     public int[] regionIndexOfGrid; // 每个网格对应的区域索引
         //
         //     public GridStepResult(int gridCount)
         //     {
@@ -606,16 +606,16 @@ namespace SceneFlowTools.Runtime
         //         for (int i = 0; i < gridCount; i++)
         //         {
         //             gridRegions.Add(new GridRegion());
-
+        //             regionIndexOfGrid[i] = -1; // -1表示未分配区域
         //         }
         //     }
         // }
         //
         // public class GridRegion
         // {
-
-
-
+        //     public List<Vector3Int> emptyGrids = new(); // 存储空格子
+        //     public HashSet<Vector3Int> edgeVoxels = new(); // 存储边界体素
+        //     public HashSet<int> objects = new(); // 存储边界体素对应的物体索引
         // }
         //
         // public static GridStepResult FindRoomsGridStep(VoxelizeResult r)
@@ -634,7 +634,7 @@ namespace SceneFlowTools.Runtime
         //                 if (visit[MyMathUtils.GetIndex(gridSize, gridIndex)]) continue;
         //                 if (r.GetGird(gridIndex) != null) continue;
         //
-
+        //                 // 找到一个未访问的、空的网格，开始区域搜索
         //                 GridRegion region = new();
         //                 result.gridRegions.Add(region);
         //                 Stack<Vector3Int> stack = new Stack<Vector3Int>();
@@ -643,13 +643,13 @@ namespace SceneFlowTools.Runtime
         //                 {
         //                     Vector3Int currentGrid = stack.Pop();
         //
-
+        //                     // 标记为已访问
         //                     visit[MyMathUtils.GetIndex(gridSize, currentGrid)] = true;
         //                     result.regionIndexOfGrid[MyMathUtils.GetIndex(gridSize, currentGrid)] =
         //                         result.gridRegions.Count;
         //                     region.emptyGrids.Add(currentGrid);
         //
-
+        //                     // 检查相邻网格
         //                     foreach (var dir in MyMathUtils.Directions6)
         //                     {
         //                         Vector3Int neighbor = currentGrid + dir;
@@ -658,13 +658,13 @@ namespace SceneFlowTools.Runtime
         //                         VoxelGrid neighborGrid = r.GetGird(neighbor);
         //                         if (neighborGrid == null)
         //                         {
-
+        //                             // 没访问且为空，添加到栈中
         //                             stack.Push(neighbor);
         //                             continue;
         //                         }
         //
-
-
+        //                         // 如果不为空，则需要记录边界体素用于进一步搜索
+        //                         // 遍历边界面处的体素
         //                         Vector3Int offsetMin = Vector3Int.zero;
         //                         Vector3Int offsetMax = Vector3Int.one * (r.options.girdSize - 1);
         //                         for (int i = 0; i < 3; i++)
@@ -694,11 +694,11 @@ namespace SceneFlowTools.Runtime
         //                                     if (!r.CheckVoxelIndex(edgeVoxel)) continue;
         //
         //                                     int voxelObjIdx = r.GetVoxel(edgeVoxel);
-
+        //                                     if (voxelObjIdx == -1) // 如果是空体素，加入边界
         //                                     {
         //                                         region.edgeVoxels.Add(edgeVoxel);
         //                                     }
-
+        //                                     else // 如果体素非空，记录边界物体
         //                                     {
         //                                         region.objects.Add(voxelObjIdx);
         //                                     }
@@ -714,9 +714,9 @@ namespace SceneFlowTools.Runtime
         //     return result;
         // }
         //
-
-
-
+        // // 第二步
+        // // dfs每个非空的grid，找连通域
+        // // 当dfs到一个空的grid时，将第一步处理的整个grid区域加入dfs
         // public static void FindRoomsVoxelStep(VoxelizeResult r, GridStepResult step1Result)
         // {
         //     r.regions = new List<Region>();
@@ -738,7 +738,7 @@ namespace SceneFlowTools.Runtime
         //                 visitVoxel[MyMathUtils.GetIndex(gridSize, gridIndex)] ??=
         //                     new BitArray(r.options.girdSize * r.options.girdSize * r.options.girdSize);
         //                 
-
+        //                 // 找到一个非空的网格，开始搜索
         //                 
         //                 BitArray currentGridVisit = visitVoxel[MyMathUtils.GetIndex(gridSize, gridIndex)];
         //
@@ -752,7 +752,7 @@ namespace SceneFlowTools.Runtime
         //                             Vector3Int index = new Vector3Int(x, y, z);
         //                             if (currentGridVisit[MyMathUtils.GetIndex(size, index)]) continue;
         //                             if (r.GetVoxel(index) != -1) continue;
-
+        //                             // 找到一个没访问、没有被三角形占据的体素，开始区域搜索
         //                             
         //                             Region region = new Region
         //                             {
@@ -774,22 +774,22 @@ namespace SceneFlowTools.Runtime
         // }
 
 
-
+        // 判断点是否在三角形投影的棱柱内（基于重心坐标）
         static bool PointInTriangle(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
         {
-
+            // 计算向量
             Vector3 v0 = c - a;
             Vector3 v1 = b - a;
             Vector3 v2 = p - a;
 
-
+            // 计算点积
             float dot00 = Vector3.Dot(v0, v0);
             float dot01 = Vector3.Dot(v0, v1);
             float dot02 = Vector3.Dot(v0, v2);
             float dot11 = Vector3.Dot(v1, v1);
             float dot12 = Vector3.Dot(v1, v2);
 
-
+            // 计算重心坐标
             float denom = dot00 * dot11 - dot01 * dot01;
             if (denom == 0) return false;
             float u = (dot11 * dot02 - dot01 * dot12) / denom;
@@ -798,27 +798,27 @@ namespace SceneFlowTools.Runtime
             return (u >= 0) && (v >= 0) && (u + v <= 1);
         }
 
-
+        // 计算点到三角形平面的距离
         static float PointTrianglePlaneDistance(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
         {
             Vector3 n = Vector3.Cross(b - a, c - a).normalized;
             return Mathf.Abs(Vector3.Dot(p - a, n));
         }
 
-
-
+        // 输入三角形顶点（局部空间或世界空间）
+        // 输出被占据体素坐标列表（以体素坐标系为准）
         public static List<Vector3Int> VoxelizeTriangle(float voxelSize, Vector3 v0, Vector3 v1, Vector3 v2)
         {
             List<Vector3Int> occupiedVoxels = new List<Vector3Int>();
 
-
+            // 计算包围盒，扩大一点防止误差
             Vector3 min = Vector3.Min(v0, Vector3.Min(v1, v2)) - Vector3.one * (voxelSize * 0.5f);
             Vector3 max = Vector3.Max(v0, Vector3.Max(v1, v2)) + Vector3.one * (voxelSize * 0.5f);
 
             Vector3Int minVoxel = WorldPosToVoxel(voxelSize, min);
             Vector3Int maxVoxel = WorldPosToVoxel(voxelSize, max);
 
-
+            // 三角形所在平面法线
             Vector3 normal = Vector3.Cross(v1 - v0, v2 - v0).normalized;
 
             for (int x = minVoxel.x; x <= maxVoxel.x; x++)
@@ -829,14 +829,14 @@ namespace SceneFlowTools.Runtime
                     {
                         Vector3 voxelCenter = VoxelToWorldPos(voxelSize, new Vector3Int(x, y, z));
 
-
+                        // 点到三角形平面距离阈值(体素大小的一半)
                         float dist = PointTrianglePlaneDistance(voxelCenter, v0, v1, v2);
                         if (dist > voxelSize * 0.5f) continue;
 
-
+                        // 将点投影到三角形平面上
                         Vector3 projectedPoint = voxelCenter - dist * normal;
 
-
+                        // 判断投影点是否在三角形内部
                         if (PointInTriangle(projectedPoint, v0, v1, v2))
                         {
                             occupiedVoxels.Add(new Vector3Int(x, y, z));
@@ -848,7 +848,7 @@ namespace SceneFlowTools.Runtime
             return occupiedVoxels;
         }
 
-
+        // 世界坐标转体素坐标（向下取整）
         public static Vector3Int WorldPosToVoxel(float voxelSize, Vector3 pos)
         {
             return new Vector3Int(
@@ -857,7 +857,7 @@ namespace SceneFlowTools.Runtime
                 Mathf.FloorToInt(pos.z / voxelSize));
         }
 
-
+        // 体素坐标转世界坐标（体素中心点）
         public static Vector3 VoxelToWorldPos(float voxelSize, Vector3Int voxel)
         {
             return new Vector3(

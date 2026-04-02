@@ -113,7 +113,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
         public void Bake()
         {
             DynamicDetectionManager tg = (DynamicDetectionManager)target;
-            tg.cachedGizmosObjects = null;
+            tg.cachedGizmosDynamic = null;
 
             if (tg.data == null)
             {
@@ -130,6 +130,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
             foreach (var scriptDynamicInfo in tg.data.ScriptsDynamicInfo)
             {
                 scriptInfoDict[scriptDynamicInfo.ScriptPath] = scriptDynamicInfo;
+                Debug.Log($"Detected script info: {scriptDynamicInfo.ScriptPath}");
             }
 
 
@@ -172,6 +173,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
         private Dictionary<string, GObjectDynamicInfo> BakeObjectInfo(
             Dictionary<string, ScriptDynamicInfo> scriptInfoDict)
         {
+            double time = EditorApplication.timeSinceStartup;
             List<GameObject> allObjects = MetaInfo.CollectAll().Select(x => x.obj).ToList();
             Dictionary<string, GObjectDynamicInfo> objectInfoDict = new();
             foreach (GameObject obj in allObjects)
@@ -181,6 +183,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
                 foreach (var comp in components)
                 {
                     if (comp == null) continue;
+                    if (comp is Behaviour { enabled: false }) continue; // skip disabled components
                     string scriptPath = SourceUtils.GetScriptPathOrNameByType(comp.GetType());
                     if (scriptPath == null) continue;
                     if (!scriptInfoDict.ContainsKey(scriptPath)) continue;
@@ -190,26 +193,29 @@ namespace SceneFlowTools.Editor.DynamicDetection
                     {
                         if (dynamicInfo.Type == "this")
                         {
-
+                            // 过滤掉没有Renderer的物体
                             if (obj.GetComponentsInChildren<Renderer>().Length == 0) continue;
-                            SetObjectDynamicType(objectInfoDict, obj, ObjectDynamicType.Dynamic);
+                            SetObjectDynamicType(objectInfoDict, obj, dynamicInfo.DynamicType);
                         }
                         else if (dynamicInfo.Type == "field")
                         {
                             GameObject fieldObj = GetFieldRelatedGameObject(comp, dynamicInfo.Name);
+                            // Debug.Log(
+                                // $"reference: {comp.name} on {obj.name} --{dynamicInfo.Name}--> {fieldObj?.name}");
                             if (fieldObj == null) continue;
-
+                            // 过滤掉未激活的物体
                             if (!fieldObj.activeInHierarchy) continue;
-
+                            // 过滤掉没有Renderer的物体
                             if (fieldObj.GetComponentsInChildren<Renderer>().Length == 0) continue;
                             Debug.Log(
-                                $"Object {obj.name} field {dynamicInfo.Name} references dynamic object {fieldObj.name}");
-                            SetObjectDynamicType(objectInfoDict, fieldObj, ObjectDynamicType.Dynamic);
+                                $"Object {obj.name} field {dynamicInfo.Name} references dynamic object {fieldObj.name} (id={fieldObj.GetComponent<MetaInfo>()?.uid})");
+                            SetObjectDynamicType(objectInfoDict, fieldObj, dynamicInfo.DynamicType);
                         }
                     }
                 }
             }
 
+            Debug.Log($"Baking object dynamic info done. time_cost={EditorApplication.timeSinceStartup - time:F2}");
             return objectInfoDict;
         }
 
@@ -264,8 +270,8 @@ namespace SceneFlowTools.Editor.DynamicDetection
             string objectId = metaInfo.uid;
             if (objectInfoDict.TryGetValue(objectId, out var info))
             {
-                // if (info.DynamicType == dynamicType) return;
-                info.DynamicType = dynamicType;
+                if (info.DynamicType < dynamicType)
+                    info.DynamicType = dynamicType;
                 // Debug.Log($"Object {obj.name} ({objectId}) dynamic type updated to {dynamicType}");
             }
             else
@@ -291,7 +297,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
 
         private GameObject GetFieldRelatedGameObject(Component comp, string fieldName)
         {
-
+            // fieldName 也可能被SerializeField属性覆盖
             // if (comp is VideoPlayer videoPlayer)
             // {
             //     var targetRenderer = videoPlayer.targetMaterialRenderer;
@@ -318,7 +324,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
                 : null;
             var fieldValue = field != null ? field.GetValue(comp) : propValue;
             // Debug.Log(
-                // $"gameobj={comp.gameObject} comp={comp.GetType().Name} fieldName={fieldName} field={field} prop={serializedProperty} value={fieldValue} value==null?{fieldValue == null}");
+            // $"gameobj={comp.gameObject} comp={comp.GetType().Name} fieldName={fieldName} field={field} prop={serializedProperty} value={fieldValue} value==null?{fieldValue == null}");
             if (fieldValue == null) return null;
             if (fieldValue is UnityEngine.Object obj && obj == null) return null; // handle destroyed UnityEngine.Object
             if (fieldValue is GameObject go) return go;
@@ -368,6 +374,7 @@ namespace SceneFlowTools.Editor.DynamicDetection
         private void BakeScriptInfo(Dictionary<string, ScriptDynamicInfo> scriptInfoDict,
             List<Type> scriptTypesNeedsUpdate)
         {
+            double time = EditorApplication.timeSinceStartup;
             const int batchSize = 8;
             Debug.Log($"Detecting scripts dynamic behaviors, batchSize={batchSize}...");
 
@@ -375,6 +382,8 @@ namespace SceneFlowTools.Editor.DynamicDetection
                 (x, SourceUtils.GetScriptPathOrNameByType(x), SourceUtils.GetScriptSourceOrFieldsByType(x))
             ).ToList();
 
+            int promptTokens = 0;
+            int completionTokens = 0;
 
             Parallel.ForEach(
                 tasks,
@@ -389,16 +398,20 @@ namespace SceneFlowTools.Editor.DynamicDetection
                     var scriptDynamicInfo = new ScriptDynamicInfo
                     {
                         ScriptPath = task.scriptPath,
-                        Dynamics = result.ToArray()
+                        Dynamics = result.results.ToArray()
                     };
                     lock (scriptInfoDict)
                     {
                         scriptInfoDict[task.scriptPath] = scriptDynamicInfo;
+                        promptTokens += result.promptTokens;
+                        completionTokens += result.completionTokens;
                     }
                 }
             );
 
-            Debug.Log("Detecting scripts dynamic behaviors done.");
+            Debug.Log(
+                $"Detecting scripts dynamic behaviors done. time_cost={EditorApplication.timeSinceStartup - time:F2}" +
+                $" promptTokens={promptTokens} completionTokens={completionTokens}");
         }
 
         // public IEnumerator TestCoroutine()

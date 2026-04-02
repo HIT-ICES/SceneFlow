@@ -7,13 +7,13 @@ namespace SceneFlowTools.Runtime
 {
     public class UserProbabilityMarker : MonoBehaviour
     {
-
+        // 权重
         public double weight = 1.0;
 
-
+        // 影响范围
         public Vector3 extent = new(1, 1, 1);
 
-
+        // 归一化的权重
         [NonSerialized] public double normalizedWeight = 0.0;
 
         private static bool _flagChanged;

@@ -6,7 +6,7 @@ using UnityEngine.Assertions;
 
 namespace SceneFlowTools.Runtime.Config
 {
-
+    // 场景配置，每个微服务相同
     [Serializable]
     public class SceneConfig : ScriptableObject
     {
@@ -106,7 +106,7 @@ namespace SceneFlowTools.Runtime.Config
         }
     }
 
-
+    // 服务配置，每个微服务不同
     [Serializable]
     public class ServiceConfig
     {
@@ -121,28 +121,28 @@ namespace SceneFlowTools.Runtime.Config
     [Serializable]
     public class Subscene
     {
-
+        // 场景ID
         public int id;
 
-
+        // 父场景ID，-1表示没有父场景
         public int parentId;
 
-
+        // 这个场景包含的物体（不包括其子场景的物体）
         public List<string> objectIds;
 
-
+        // 这个场景包含的子场景
         public List<int> subscenes;
 
-
+        // 这个场景的边界
         public Bounds bounds;
 
-
+        // 这个场景的统计信息（不包括其子场景的物体）
         public SubsceneMetrics metrics;
 
-
+        // 这个场景的统计信息（不包括其子场景的物体）
         public SubsceneMetrics metricsIncludeChildren;
 
-
+        // 用户位于此子场景的概率（包括子场景）
         public double userProbability;
 
         public static List<int> GetLeafNodes(List<Subscene> scenes)
@@ -206,14 +206,34 @@ namespace SceneFlowTools.Runtime.Config
 
     public static class SubsceneUtils
     {
+        // 删除没有物体的节点（根节点除外）
+        public static void DeleteEmptyNodes(List<Subscene> subscenes)
+        {
+            AssertValid(subscenes);
+            DeleteEmptyNodesImpl(subscenes, 0);
+            if (subscenes[0].objectIds.Count == 0 && subscenes[0].subscenes.Count == 1)
+            {
+                int onlyChildId = subscenes[0].subscenes[0];
+                Subscene onlyChild = subscenes[onlyChildId];
+                onlyChild.id = 0;
+                onlyChild.parentId = -1;
+                subscenes[0] = onlyChild;
+                subscenes[onlyChildId] = null;
+                foreach (var onlyChildSubscene in onlyChild.subscenes)
+                {
+                    subscenes[onlyChildSubscene].parentId = 0;
+                }
+            }
+            RemoveNulls(subscenes);
+        }
 
-        public static void DeleteEmptyNodes(List<Subscene> subscenes, int p)
+        private static void DeleteEmptyNodesImpl(List<Subscene> subscenes, int p)
         {
             Subscene node = subscenes[p];
             List<int> toRemove = new List<int>();
             foreach (int cid in node.subscenes)
             {
-                DeleteEmptyNodes(subscenes, cid);
+                DeleteEmptyNodesImpl(subscenes, cid);
                 if (subscenes[cid].objectIds.Count == 0)
                 {
                     Debug.Log($"Remove empty node {cid}");
@@ -227,6 +247,8 @@ namespace SceneFlowTools.Runtime.Config
                 node.subscenes.AddRange(subscenes[cid].subscenes);
                 foreach (int gcid in subscenes[cid].subscenes)
                 {
+                    Assert.AreEqual(subscenes[gcid].id, gcid);
+                    Assert.AreEqual(subscenes[gcid].parentId, cid);
                     subscenes[gcid].parentId = p;
                 }
 
@@ -234,7 +256,7 @@ namespace SceneFlowTools.Runtime.Config
             }
         }
 
-
+        // 删除列表中的空场景，并重新编号
         public static void RemoveNulls(List<Subscene> scenes)
         {
             for (int i = 0; i < scenes.Count; i++)
@@ -261,14 +283,19 @@ namespace SceneFlowTools.Runtime.Config
                 }
             }
 
-            for (int i = 0; i < scenes.Count; i++)
+            AssertValid(scenes);
+        }
+        
+        public static void AssertValid(List<Subscene> subscenes)
+        {
+            for (int i = 0; i < subscenes.Count; i++)
             {
-                Assert.AreEqual(scenes[i].id, i);
-                Assert.IsTrue(scenes[i].parentId < scenes.Count);
-                foreach (var cid in scenes[i].subscenes)
+                Assert.AreEqual(subscenes[i].id, i);
+                foreach (var cid in subscenes[i].subscenes)
                 {
-                    Assert.IsTrue(cid < scenes.Count);
+                    Assert.AreEqual(subscenes[cid].parentId, i);
                 }
+                AssertNoCircle(subscenes, i);
             }
         }
 

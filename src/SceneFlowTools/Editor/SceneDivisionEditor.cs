@@ -14,7 +14,7 @@ namespace SceneFlowTools.Editor
     {
         public override void OnInspectorGUI()
         {
-
+            // 保留原有字段显示
             // DrawDefaultInspector();
             serializedObject.Update();
             InspectorGUIGlobalDivision();
@@ -48,11 +48,13 @@ namespace SceneFlowTools.Editor
         private void GlobalDivisionBake()
         {
             SceneDivision sd = (SceneDivision)target;
+            double time = EditorApplication.timeSinceStartup;
 
             Debug.Log("Global division bake start...");
             string infoPath;
             if (sd.regenerateSceneInfo)
             {
+                double t = EditorApplication.timeSinceStartup;
                 Debug.Log("Global division: collecting mesh objects...");
                 var objList = sd.GetMeshObjectList().meshObjects
                     .Select(v => GameObjectInfoCollector.GetInfo(v.gameObject)).ToList();
@@ -60,7 +62,8 @@ namespace SceneFlowTools.Editor
 
                 Debug.Log($"Global division: collected [{objList.Count}] mesh objects.");
                 infoPath = GameObjectInfoCollector.Save(sd.gameObject.scene, objList);
-                Debug.Log($"Global division: saved mesh object info to [{infoPath}]");
+                Debug.Log(
+                    $"Global division: saved mesh object info to [{infoPath}], time_cost={EditorApplication.timeSinceStartup - t:F2}");
             }
             else
             {
@@ -87,6 +90,8 @@ namespace SceneFlowTools.Editor
                 sd.globalDivisionResult);
             EditorUtility.SetDirty(sd);
             EditorSceneManager.MarkSceneDirty(sd.gameObject.scene);
+            Debug.Log(
+                $"Global division bake complete, time_cost = {EditorApplication.timeSinceStartup - time:F2} seconds.");
         }
 
         private void GlobalDivisionClear()
@@ -115,6 +120,7 @@ namespace SceneFlowTools.Editor
 
         private void RoomDivisionBake()
         {
+            double time = EditorApplication.timeSinceStartup;
             SceneDivision sd = (SceneDivision)target;
             sd.roomDivisionResult =
                 VoxelizerCPU.Voxelize(sd.roomDivisionParams, sd.GetMeshObjectList().meshObjects);
@@ -140,7 +146,7 @@ namespace SceneFlowTools.Editor
                 sd.roomDivisionResult);
             EditorUtility.SetDirty(sd);
             EditorSceneManager.MarkSceneDirty(sd.gameObject.scene);
-            Debug.Log("Voxelization complete. Result saved to scene asset.");
+            Debug.Log($"Voxelization complete, time_cost = {EditorApplication.timeSinceStartup - time:F2} seconds.");
         }
 
         private void RoomDivisionClear()

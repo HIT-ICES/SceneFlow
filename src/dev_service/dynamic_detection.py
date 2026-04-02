@@ -9,9 +9,9 @@ from autogen_agentchat.messages import StructuredMessage
 from autogen_agentchat.teams import RoundRobinGroupChat
 
 from agents.dynamic_detection_agent import DynamicDetectionAgent, DynamicDetectionAnalyzeAgent, \
-    DynamicDetectionSummaryAgent, DynamicDetectionResultMessage
+    DynamicDetectionSummaryAgent, DynamicDetectionResultMessage, DynamicDetectionResult
 from agents.model import MODEL_CLIENT_DETECT
-
+# 引入日志
 import logging_config  # noqa: F401
 from loguru import logger
 import os
@@ -25,14 +25,14 @@ def script_detect_cache_key(script_name: str, script_content: str) -> str:
     return script_name + "-" + m.hexdigest()
 
 
-def load_script_detect_cache(script_name: str, script_content: str) -> Optional[DynamicDetectionResultMessage]:
+def load_script_detect_cache(script_name: str, script_content: str) -> Optional[DynamicDetectionResult]:
     cache_key = script_detect_cache_key(script_name, script_content)
     cache_path = f"cache/dynamic_detection/{cache_key}.json"
     if not os.path.exists(cache_path):
         return None
     with open(cache_path, "r", encoding="utf-8") as f:
         try:
-            return DynamicDetectionResultMessage.model_validate_json(f.read())
+            return DynamicDetectionResult.model_validate_json(f.read())
         except Exception as e:
             logger.error(f"load_script_detect_cache error: {e}")
             f.close()
@@ -40,7 +40,7 @@ def load_script_detect_cache(script_name: str, script_content: str) -> Optional[
             return None
 
 
-def save_script_detect_cache(script_name: str, script_content: str, result: DynamicDetectionResultMessage,
+def save_script_detect_cache(script_name: str, script_content: str, result: DynamicDetectionResult,
                              task_result: TaskResult):
     cache_key = script_detect_cache_key(script_name, script_content)
     cache_path = f"cache/dynamic_detection/{cache_key}.json"
@@ -79,7 +79,7 @@ async def detect_script2(script_name: str, script_content: str, use_cache: bool 
         cache = load_script_detect_cache(script_name, script_content)
         if cache is not None:
             logger.info(f"cache hit: script [{script_name}]")
-            return cache.results
+            return cache
     agent1 = DynamicDetectionAnalyzeAgent(MODEL_CLIENT_DETECT)
     agent2 = DynamicDetectionSummaryAgent(MODEL_CLIENT_DETECT)
     team = RoundRobinGroupChat(
@@ -88,15 +88,26 @@ async def detect_script2(script_name: str, script_content: str, use_cache: bool 
         custom_message_types=[StructuredMessage[DynamicDetectionResultMessage]],
     )
     task_result = await team.run(task=script_content)
+    prompt_tokens = 0
+    completion_tokens = 0
+    for msg in task_result.messages:
+        if msg.models_usage is None:
+            continue
+        prompt_tokens += msg.models_usage.prompt_tokens
+        completion_tokens += msg.models_usage.completion_tokens
     # logger.debug(f"Full messages for script [{script_name}]: {task_result.messages}")
-    if not isinstance(task_result.messages[-1], StructuredMessage) or not isinstance(task_result.messages[-1].content,
-                                                                                DynamicDetectionResultMessage):
+    if (not isinstance(task_result.messages[-1], StructuredMessage)
+            or not isinstance(task_result.messages[-1].content, DynamicDetectionResultMessage)):
         logger.error(f"Error final message script [{script_name}]: {task_result.messages[-1]}")
         raise ValueError("Invalid result format, no JSON found.")
-    result = task_result.messages[-1].content
+    result = DynamicDetectionResult(
+        results=task_result.messages[-1].content.results,
+        promptTokens=prompt_tokens,
+        completionTokens=completion_tokens,
+    )
     logger.info(f"Result script [{script_name}]: {result}")
     save_script_detect_cache(script_name, script_content, result, task_result)
-    return result.results
+    return result
 
 
 async def detect_script(script_content: str):
@@ -111,7 +122,7 @@ async def repeat_detect_script(script_content: str, times: int = 3):
     for _ in range(times):
         tasks.append(agent.detect(script_content))
     for idx, r in enumerate(await asyncio.gather(*tasks)):
-        logger.info("repeat_detect_script {}: {}", idx + 1, r)
+        logger.info("repeat_detect_script 第{}次 结果: {}", idx + 1, r)
 
 
 if __name__ == "__main__":
