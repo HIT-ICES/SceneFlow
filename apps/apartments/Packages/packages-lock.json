@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "com.scenedivisontools": {
-      "version": "file:D:/VR/SceneDivision/SceneDivisonTools",
+    "com.sceneflowtools": {
+      "version": "file:D:/VR/SceneDivision/SceneFlowTools",
       "depth": 0,
       "source": "local",
       "dependencies": {

@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.scenedivisontools": "file:D:/VR/SceneDivision/SceneDivisonTools",
+    "com.sceneflowtools": "file:D:/VR/SceneDivision/SceneFlowTools",
     "com.unity.ai.navigation": "1.1.5",
     "com.unity.collab-proxy": "2.5.2",
     "com.unity.ide.rider": "3.0.34",
