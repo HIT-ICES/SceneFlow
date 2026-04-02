@@ -118,24 +118,19 @@ class DecompressRequestMiddleware:
 
 
 class GZipRequestMiddleware(BaseHTTPMiddleware):
-    """
-    FastAPI 中间件：自动解压 Content-Encoding: gzip 的请求体
-    """
     def __init__(self, app: ASGIApp):
         super().__init__(app)
 
     async def dispatch(self, request: Request, call_next):
         print(request.headers)
-        # 判断是否是 gzip 压缩请求
         if request.headers.get("Content-Encoding", "").lower() == "gzip":
-            body = await request.body()  # 获取原始请求体
+            body = await request.body()
             try:
-                decompressed = gzip.decompress(body)  # 解压
+                decompressed = gzip.decompress(body) 
             except Exception as e:
                 logger.error(f"Failed to decompress gzip body: {e}")
                 return PlainTextResponse(f"Invalid gzip body: {e}", status_code=400)
 
-            # 创建一个新的 request.scope，替换 body
             sent = False
             async def new_receive():
                 nonlocal sent

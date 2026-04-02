@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeUV : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：修改材质UV平铺与偏移（mainTextureScale/Offset）
+        
         public Renderer targetRenderer;
         public Vector2 tilingA = new Vector2(1f, 1f);
         public Vector2 tilingB = new Vector2(2f, 2f);
@@ -15,7 +15,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            
             selfRenderer = GetComponent<Renderer>();
         }
 

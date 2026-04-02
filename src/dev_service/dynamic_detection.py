@@ -11,7 +11,6 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from agents.dynamic_detection_agent import DynamicDetectionAgent, DynamicDetectionAnalyzeAgent, \
     DynamicDetectionSummaryAgent, DynamicDetectionResultMessage, DynamicDetectionResult
 from agents.model import MODEL_CLIENT_DETECT
-# 引入日志
 import logging_config  # noqa: F401
 from loguru import logger
 import os
@@ -122,7 +121,7 @@ async def repeat_detect_script(script_content: str, times: int = 3):
     for _ in range(times):
         tasks.append(agent.detect(script_content))
     for idx, r in enumerate(await asyncio.gather(*tasks)):
-        logger.info("repeat_detect_script 第{}次 结果: {}", idx + 1, r)
+        logger.info("repeat_detect_script {} : {}", idx + 1, r)
 
 
 if __name__ == "__main__":

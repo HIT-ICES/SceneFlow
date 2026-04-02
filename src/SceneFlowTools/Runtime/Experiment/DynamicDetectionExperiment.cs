@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 namespace SceneFlowTools.Runtime.Experiment
 {
     /// <summary>
-    /// 用于动态检测实验的分析脚本
+    
     /// </summary>
     public class DynamicDetectionExperiment : MonoBehaviour
     {

@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeShader : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：切换材质使用的Shader
+        
         public Renderer targetRenderer;
         public Shader shaderA;
         public Shader shaderB;
@@ -14,7 +14,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            
             selfRenderer = GetComponent<Renderer>();
         }
 

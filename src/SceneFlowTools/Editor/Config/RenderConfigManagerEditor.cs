@@ -127,16 +127,16 @@ namespace SceneFlowTools.Editor.Config
                 mapId2Obj[id] = gObj;
             }
 
-            // TODO: 生成配置
-            // 树形结构生成方法：
-            // 1. 全局拆分结果得到一系列节点A，按照包含关系确定父子关系
-            // 2. 房间（局部）拆分得到一系列节点B，按照包含关系确定父子关系
-            // 3. A、B之间按照包含关系确定父子关系
-            // 树结构约束：
-            // - 根节点包含所有物体
-            // - 每个节点的物体集合不包含其子节点的物体集合  ---  这是为了一条“链”上的物体不重复
-            // - 每个节点的物体集合不与兄弟节点交叉   ---   这是为了防止一条“链”上渲染多次
-            // - 节点的边界盒必须包含其所有子节点的边界
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             List<Subscene> subscenes = new List<Subscene>();
             // root
             subscenes.Add(new Subscene()
@@ -197,16 +197,16 @@ namespace SceneFlowTools.Editor.Config
 
             CollectChildrenByParentId(subscenes);
 
-            // 删除父节点中包含的物体
+            
             DeleteObjectsInChildren(subscenes, 0);
             
-            // 删除空节点
+            
             if (!tg.allowEmptyNodes)
             {
                 SubsceneUtils.DeleteEmptyNodes(subscenes);
             }
 
-            // 删除兄弟节点中重复的物体
+            
             // UniqueObjectsInBrothers(subscenes, 0);
 
             // SubsceneUtils.DeleteEmptyNodes(subscenes, 0);
@@ -214,8 +214,8 @@ namespace SceneFlowTools.Editor.Config
 
             UpdateMetrics(subscenes);
 
-            // 最后要重新计算包围盒，因为物体变化了
-            // ERROR！这里会导致没有物体的节点被挂在任意节点下
+            
+            
             // foreach (var scene in subscenes)
             // {
             //     var objs = scene.objectIds
@@ -234,8 +234,8 @@ namespace SceneFlowTools.Editor.Config
             //     }
             // }
 
-            // 又因为包围盒变化了，所以父子关系也可能变化
-            // TODO: 这里处理的太丑了。。。
+            
+            
             // GenerateTree(subscenes, true);
             // CollectChildrenByParentId(subscenes);
 
@@ -248,7 +248,7 @@ namespace SceneFlowTools.Editor.Config
                 }
             }
 
-            // 保存
+            
             tg.sceneConfig = ScriptableObject.CreateInstance<SceneConfig>();
             tg.sceneConfig.scenes = subscenes;
             SceneUtils.SaveSceneAsset(tg.gameObject.scene, SceneConfig.AssetName,
@@ -263,7 +263,7 @@ namespace SceneFlowTools.Editor.Config
             {
                 subscene.subscenes.Clear();
             }
-            // 生成子节点列表
+            
             for (int i = 1; i < subscenes.Count; i++)
             {
                 int parentId = subscenes[i].parentId;
@@ -279,8 +279,8 @@ namespace SceneFlowTools.Editor.Config
             }
         }
 
-        // 从父节点中删除自身包含的物体，递归
-        // 返回p节点及其所有下游节点的物体ID集合
+        
+        
         private HashSet<string> DeleteObjectsInChildren(List<Subscene> subscenes, int p)
         {
             Subscene node = subscenes[p];
@@ -297,7 +297,7 @@ namespace SceneFlowTools.Editor.Config
             return objectIds;
         }
 
-        // 从兄弟节点中删除重复的物体，递归
+        
         private void UniqueObjectsInBrothers(List<Subscene> subscenes, int p)
         {
             Subscene node = subscenes[p];
@@ -313,7 +313,7 @@ namespace SceneFlowTools.Editor.Config
 
         private void GenerateTree(List<Subscene> subscenes, bool includeY)
         {
-            // i是j的上游节点
+            
             var isUpstream = new Func<int, int, bool>((i, j) =>
             {
                 if (i == -1 || j == -1 || subscenes[j].parentId == -1) return false;

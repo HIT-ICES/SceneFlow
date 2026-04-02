@@ -1,6 +1,3 @@
-"""
-包围盒，以及用于处理包围盒相关的工具
-"""
 from typing import List
 
 import numpy as np
@@ -30,13 +27,13 @@ class Bounds:
     @staticmethod
     def from_vertices(vertices):
         """
-        从顶点列表或ndarray创建Bounds对象
+        Create a Bounds object from a vertex list or ndarray.
         """
         vertices = np.asarray(vertices)
         if vertices.ndim != 2 or vertices.shape[1] != 3:
-            raise ValueError("顶点数组必须是形状为(N, 3)的ndarray或列表")
+            raise ValueError("(N, 3)")
         if vertices.size == 0:
-            raise ValueError("顶点数组不能为空")
+            raise ValueError("empty vertices")
         min_v = np.min(vertices, axis=0)
         max_v = np.max(vertices, axis=0)
         center = (min_v + max_v) / 2
@@ -46,14 +43,14 @@ class Bounds:
     @staticmethod
     def intersect(bounds1: "Bounds", bounds2: "Bounds", *, axis: None | List[int] = None):
         """
-        检查两个AABB包围盒是否相交
+        Check whether two AABB bounding boxes intersect.
         """
         return np.all(bounds1.min(axis) <= bounds2.max(axis)) and np.all(bounds1.max(axis) >= bounds2.min(axis))
 
     @staticmethod
     def contains(bounds1: "Bounds", bounds2: "Bounds", *, axis: None | List[int] = None):
         """
-        检查AABB1是否完全包含AABB2
+        Check whether AABB1 fully contains AABB2.
         """
         return np.all(bounds1.min(axis) <= bounds2.min(axis)) and np.all(bounds1.max(axis) >= bounds2.max(axis))
 

@@ -49,12 +49,6 @@ def pre_process(method_name, data_v, data_id, *, reduce_dim=True, trace_figure=F
     if trace_figure:
         cluster_utils.save_figure_data(f"Raw Data", data_v, np.zeros(len(data_v), dtype=int))
     data_v = data_v.copy()
-    # # 预处理：将每个模型的点集向其中心拉近
-    # for obj_id in np.unique(data_id):
-    #     points = data_v[data_id == obj_id]
-    #     center = points.mean(axis=0)
-    #     # 用一个指向重心的向量拉近0.5
-    #     data_v[data_id == obj_id] = points + (center - points) * 0.5
     return data_v if not reduce_dim else reduce_dimension(data_v)
 
 def dbscan(data_v, data_id, *, reduce_dim=True, eps=2, min_samples=10, metric="euclidean",
@@ -247,23 +241,6 @@ def birch_auto(data_v, data_id, *, reduce_dim=True, threshold=0.5, branching_fac
     dbscan = DBSCAN(eps=threshold * 2, min_samples=5)
     sub_labels = dbscan.fit_predict(subcluster_centers)
     labels = sub_labels[birch_cluster.labels_]
-
-    # # Step 2: 在子簇中心上寻找最佳 K 值
-    # best_k = 2
-    # max_score = -1
-    # for k in range(2, 11):
-    #     model = AgglomerativeClustering(n_clusters=k)
-    #     labels = model.fit_predict(subcluster_centers)
-    #     score = silhouette_score(subcluster_centers, labels)
-    #     if score > max_score:
-    #         max_score = score
-    #         best_k = k
-    #
-    # logger.info(f"BIRCH AUTO: best K found is {best_k} with silhouette score {max_score}")
-    #
-    # birch_cluster.n_clusters = best_k
-    # birch_cluster.partial_fit(data_v_reduced)
-    # labels = birch_cluster.predict(data_v_reduced)
 
     logger.info(f"BIRCH AUTO: predict find [{len(np.unique(labels))}] labels")
 
