@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "cn.edu.hit.ices.sceneflowtools": "file:D:/VR/SceneFlowDev/SceneFlowTools",
+    "com.sceneflowtools": "file:D:/VR/SceneFlowDev/SceneFlowTools",
     "com.unity.collab-proxy": "2.8.2",
     "com.unity.feature.development": "1.0.1",
     "com.unity.ide.rider": "3.0.37",

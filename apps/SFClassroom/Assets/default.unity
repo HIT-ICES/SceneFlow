@@ -160264,7 +160264,7 @@ PrefabInstance:
     - target: {fileID: 4102254007862319806, guid: cb90cbc748b30144bac6adc9fa44989b,
         type: 3}
       propertyPath: serviceHost
-      value: rick-ices:8000
+      value: testserver:8000
       objectReference: {fileID: 0}
     - target: {fileID: 4102254007862319806, guid: cb90cbc748b30144bac6adc9fa44989b,
         type: 3}

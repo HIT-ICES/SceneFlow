@@ -14065,7 +14065,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   usePredefinedServiceHost: 2
-  serviceHost: rick-ices:8000
+  serviceHost: testserver:8000
 --- !u!114 &8538061771187871721
 MonoBehaviour:
   m_ObjectHideFlags: 0

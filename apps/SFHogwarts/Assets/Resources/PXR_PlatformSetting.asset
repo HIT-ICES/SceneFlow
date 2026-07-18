@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entitlementCheckSimulation: 0
   startTimeEntitlementCheck: 0
-  appID: com.ices.crossport.testapps.fullvr.hogwarts
+  appID: com.hogwarts
   useHighlight: 1
   deviceSN: []

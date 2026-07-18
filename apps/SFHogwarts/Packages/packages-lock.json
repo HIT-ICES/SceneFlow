@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "cn.edu.hit.ices.sceneflowtools": {
+    "com.sceneflowtools": {
       "version": "file:D:/VR/SceneFlowDev/SceneFlowTools",
       "depth": 0,
       "source": "local",
