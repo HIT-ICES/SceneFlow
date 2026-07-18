@@ -28,7 +28,7 @@ namespace Utils
 
         public bool SceneContains(Bounds a, Bounds b)
         {
-            
+            // xz轴包含，y轴至少相交
             return a.min.x <= b.min.x && a.max.x >= b.max.x &&
                    a.min.z <= b.min.z && a.max.z >= b.max.z &&
                    a.min.y <= b.max.y && a.max.y >= b.min.y;

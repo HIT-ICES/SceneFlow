@@ -26,7 +26,10 @@ namespace Ices.Crossport.Diagnostics
             return Latency.FromRaw(_delays.Select(t => t.TotalMilliseconds).ToList());
         }
 
-        public static void Reset() { _delays.Clear(); }
+        public static void Reset() { 
+            _delays.Clear();
+            UseStatsLogger();
+        }
 
         public static void UseDebugLogger()
         {
@@ -65,7 +68,11 @@ namespace Ices.Crossport.Diagnostics
             }
         }
 
-        public static void UseStatsLogger() { OnFeedback += EventLogger_Stats_log; }
+        public static void UseStatsLogger()
+        {
+            OnFeedback -= EventLogger_Stats_log;
+            OnFeedback += EventLogger_Stats_log;
+        }
 
         private static void EventLogger_Stats_log(TimeSpan obj)
         {

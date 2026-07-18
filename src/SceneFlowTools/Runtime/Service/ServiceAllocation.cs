@@ -5,11 +5,18 @@ using System.Text;
 using JetBrains.Annotations;
 using SceneFlowTools.Runtime.Config;
 using SceneFlowTools.Runtime.DynamicDetection;
+using SceneFlowTools.Runtime.Utils;
 using UnityEngine;
 using Utils;
 
 namespace SceneFlowTools.Runtime.Service
 {
+    public enum ServiceAllocationGizmosMode
+    {
+        Bounds,
+        BoundsAndObjects
+    }
+
     public class ServiceAllocation : MonoBehaviour
     {
         public RenderConfigManager renderConfigManager;
@@ -19,13 +26,22 @@ namespace SceneFlowTools.Runtime.Service
         public double renderTimeTrangleFactor = 0.00001;
         public int cloudSceneLayerCount = 1;
         public int deviceSceneLayerCount = 1;
+        public bool useClientMarker = true;
         public bool deviceSceneNeedsInteractive = false;
+
+        [Tooltip("Optional prefix for generated client/edge/cloud config JSON file names.")]
+        public string configPrefix = "";
+
         public List<ServerInfo> servers;
 
         public AllocationResult allocationResult;
 
         public Color[] gizmosColors = { Color.red, Color.green, Color.blue, Color.yellow, Color.cyan, Color.magenta };
         public int gizmosEdgeId = -1;
+        public ServiceAllocationGizmosMode gizmosMode = ServiceAllocationGizmosMode.Bounds;
+
+        [Tooltip("Color used for subtree scenes of the displayed edge scenes.")]
+        public Color gizmosSubtreeColor = Color.white;
 
         private HashSet<int> _edgeScenes;
         private HashSet<int> _deviceScenes;
@@ -59,10 +75,28 @@ namespace SceneFlowTools.Runtime.Service
             int maxDepth = scenes.Select((t, i) => SubsceneUtils.GetDepth(scenes, i)).Prepend(0).Max();
             List<int> cloudScenes = scenes.Where(t => SubsceneUtils.GetDepth(scenes, t.id) < cloudSceneLayerCount)
                 .Select(t => t.id).ToList();
-            _deviceScenes = scenes
-                .Where(t => SubsceneUtils.GetHeight(scenes, t.id) <= deviceSceneLayerCount - 1 &&
-                            (!deviceSceneNeedsInteractive || sceneHasInteractive(t)))
-                .Select(t => t.id).ToHashSet();
+            if (!useClientMarker)
+            {
+                _deviceScenes = scenes
+                    .Where(t => SubsceneUtils.GetHeight(scenes, t.id) <= deviceSceneLayerCount - 1 &&
+                                (!deviceSceneNeedsInteractive || sceneHasInteractive(t)))
+                    .Select(t => t.id).ToHashSet();
+            }
+            else
+            {
+                ClientConnectMarker[] markers = FindObjectsOfType<ClientConnectMarker>();
+                Func<Bounds, bool> containsMarker =
+                    bounds => markers.Any(marker => bounds.Contains(marker.transform.position));
+                Func<Subscene, bool> isClientScene = s =>
+                {
+                    bool contains = containsMarker(s.bounds);
+                    bool childrenContains = s.subscenes.Select(childId => Subscenes[childId])
+                        .Any(child => containsMarker(child.bounds));
+                    return contains && !childrenContains;
+                };
+                _deviceScenes = scenes.Where(s => isClientScene(s)).Select(t => t.id).ToHashSet();
+            }
+
             _edgeScenes = scenes
                 .Select(t => t.id)
                 .Where(id => !cloudScenes.Contains(id) && !_deviceScenes.Contains(id))
@@ -97,7 +131,7 @@ namespace SceneFlowTools.Runtime.Service
             return (maxUserCount, allocation);
         }
 
-        
+        // 检查单个子场景是否超载
         private bool CheckSingleSubsceneOverload(int userCount)
         {
             foreach (var sceneId in _edgeScenes)
@@ -112,233 +146,7 @@ namespace SceneFlowTools.Runtime.Service
             return true;
         }
 
-        private List<ServerAllocationResult> CheckServiceDivision(int userCount)
-        {
-            List<Subscene> sceneList = Subscenes
-                .Where(t => _edgeScenes.Contains(t.id))
-                .ToList();
-            
-            sceneList.Sort((a, b) => EstimateRenderTime(b, userCount).CompareTo(EstimateRenderTime(a, userCount)));
-            List<ServerAllocationResult> services = new List<ServerAllocationResult>();
-            foreach (ServerInfo server in servers)
-            {
-                ServerAllocationResult service = new ServerAllocationResult();
-                for (var i = 0; i < sceneList.Count; i++)
-                {
-                    var scene = sceneList[i];
-                    if (scene == null) continue;
-                    if (EstimateRenderTime(scene, userCount) + service.renderTime > 1.0 / fpsLimit) continue;
-                    if (scene.metrics.gpuMemory + service.gpuMemory > servers[0].gpuMemoryBytes) continue;
-                    service.scenes.Add(scene.id);
-                    service.renderTime += EstimateRenderTime(scene, userCount);
-                    service.gpuMemory += scene.metrics.gpuMemory;
-                    sceneList[i] = null;
-                }
-
-                if (service.scenes.Count > 0)
-                {
-                    services.Add(service);
-                }
-            }
-
-            
-            foreach (var scene in sceneList)
-            {
-                if (scene != null)
-                {
-                    return null;
-                }
-            }
-
-            return services;
-        }
-
-        private List<ServerAllocationResult> CheckServiceDivision2(int userCount)
-        {
-            List<List<AllocationNode>> nodeLayers = new List<List<AllocationNode>>();
-            nodeLayers.Add(CollectEdgeFirstLayerNodes());
-            AssertNodesNotOverlap(nodeLayers);
-            bool flagAllInLimit = false;
-            while (!flagAllInLimit)
-            {
-                flagAllInLimit = true;
-                for (int i = 0; i < nodeLayers.Count; i++)
-                {
-                    var nodeLayer = nodeLayers[i];
-                    
-                    int maxGpuMemoryIndex = FindHeavestNode(nodeLayer, n => n.metrics.gpuMemory).index;
-                    if (nodeLayer[maxGpuMemoryIndex].metrics.gpuMemory > servers[0].gpuMemoryBytes)
-                    {
-                        flagAllInLimit = false;
-                        int heaviestId =
-                            FindHeavestNodeInChildren(nodeLayer[maxGpuMemoryIndex], n => n.metrics.gpuMemory).nodeId;
-                        if (heaviestId == -1)
-                        {
-                            
-                            
-                            return null;
-                        }
-
-                        var (root, other) = SplitAllocationNode(nodeLayer[maxGpuMemoryIndex], heaviestId);
-                        nodeLayer.RemoveAt(maxGpuMemoryIndex);
-                        nodeLayer.Add(root);
-                        if (i + 1 >= nodeLayers.Count)
-                            nodeLayers.Add(new List<AllocationNode>());
-                        nodeLayers[i + 1].Add(other);
-                    }
-
-                    AssertNodesNotOverlap(nodeLayers);
-                    
-                    int maxRenderTimeIndex = FindHeavestNode(nodeLayer, n => EstimateRenderTime(n, userCount)).index;
-                    // Debug.Log(
-                    // $"Heavest render time node: {nodeLayer[maxRenderTimeIndex].rootId}, time: {EstimateRenderTime(nodeLayer[maxRenderTimeIndex], userCount)}");
-                    if (EstimateRenderTime(nodeLayer[maxRenderTimeIndex], userCount) > 1.0 / fpsLimit)
-                    {
-                        // Debug.Log(
-                        
-                        flagAllInLimit = false;
-                        int heaviestId = FindHeavestNodeInChildren(nodeLayer[maxRenderTimeIndex],
-                            n => EstimateRenderTime(n, userCount)).nodeId;
-                        if (heaviestId == -1)
-                        {
-                            
-                            
-                            return null;
-                        }
-
-                        var (root, other) = SplitAllocationNode(nodeLayer[maxRenderTimeIndex], heaviestId);
-                        nodeLayer.RemoveAt(maxRenderTimeIndex);
-                        nodeLayer.Add(root);
-                        if (i + 1 >= nodeLayers.Count)
-                            nodeLayers.Add(new List<AllocationNode>());
-                        nodeLayers[i + 1].Add(other);
-                    }
-
-                    AssertNodesNotOverlap(nodeLayers);
-                }
-            }
-
-            
-            
-            return AllocateNodeToServersGreedy(userCount, nodeLayers,
-                (a, b) => EstimateRenderTime(b, userCount).CompareTo(EstimateRenderTime(a, userCount)));
-        }
-
-        private void AssertNodesNotOverlap(List<List<AllocationNode>> nodeLayers)
-        {
-            HashSet<int> allScenes = new HashSet<int>();
-            foreach (var layer in nodeLayers)
-            {
-                foreach (var node in layer)
-                {
-                    foreach (var scene in node.scenes)
-                    {
-                        if (!allScenes.Add(scene))
-                            throw new Exception("nodes overlap");
-                    }
-                }
-            }
-        }
-
-        private List<ServerAllocationResult> AllocateNodeToServersGreedy(int userCount,
-            List<List<AllocationNode>> allocNodeLayers, Comparison<AllocationNode> nodeComparison)
-        {
-            
-            List<List<AllocationNode>> nodeLayers = allocNodeLayers.Select(layer =>
-            {
-                var newLayer = new List<AllocationNode>(layer);
-                newLayer.Sort(nodeComparison);
-                Debug.Log(
-                    $"Layer: {string.Join(", ", newLayer.Select(n => n.rootId + "(time:" + EstimateRenderTime(n, userCount) + ")"))}");
-                return newLayer;
-            }).ToList();
-            List<ServerAllocationResult> results = new List<ServerAllocationResult>();
-            foreach (var server in servers)
-            {
-                ServerAllocationResult result = new ServerAllocationResult();
-                for (int i = 0; i < nodeLayers.Count; i++)
-                {
-                    var nodeLayer = nodeLayers[i];
-                    if (nodeLayer == null) continue;
-                    bool allocatedInThisLayer = false;
-                    for (int j = 0; j < nodeLayer.Count; j++)
-                    {
-                        var node = nodeLayer[j];
-                        if (node == null) continue;
-                        if (EstimateRenderTime(node, userCount) + result.renderTime > 1.0 / fpsLimit) continue;
-                        if (node.metrics.gpuMemory + result.gpuMemory > server.gpuMemoryBytes) continue;
-                        allocatedInThisLayer = true;
-                        result.rootScenes.Add(node.rootId);
-                        result.scenes.AddRange(node.scenes);
-                        result.renderTime += EstimateRenderTime(node, userCount);
-                        result.gpuMemory += node.metrics.gpuMemory;
-                        nodeLayer[j] = null;
-                    }
-
-                    
-                    if (!allocatedInThisLayer) break;
-                    
-                    if (nodeLayer.All(n => n == null)) nodeLayers[i] = null;
-                    
-                    if (nodeLayers[i] != null) break;
-                }
-
-                results.Add(result);
-            }
-
-            
-            if (nodeLayers.Any(layer => layer != null))
-            {
-                Debug.Log(
-                    $"AllocateNodeToServersGreedy(" +
-                    $"userCount={userCount}, " +
-                    $"layerCount={string.Join(",", allocNodeLayers.Select(x => x.Count))}) " +
-                    $"is infeasible" +
-                    $"results={string.Join(",", results.Select(x => x.scenes.Count))}"
-                );
-                return null;
-            }
-
-            CalcServiceDependencies(results);
-
-            return results;
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        private List<ServerAllocationResult> CheckServiceDivision3(int userCount)
-        {
-            List<AllocationNode> nodes = CollectEdgeFirstLayerNodes();
-            foreach (var node in nodes)
-            {
-                if (!DoSplitNodes(userCount, node))
-                {
-                    
-                    return null;
-                }
-            }
-
-            return AllocateNodeToServersGreedy3(userCount, nodes,
-                (a, b) => EstimateRenderTime(b, userCount).CompareTo(EstimateRenderTime(a, userCount)));
-        }
-
-
-        private List<ServerAllocationResult> AllocateNodeToServersGreedy3(int userCount,
-            List<AllocationNode> nodes, Comparison<AllocationNode> nodeComparison)
-        {
-            throw new NotImplementedException();
-        }
-
-        
+        // 将问题进一步限制为子树划分问题来求解
         private List<ServerAllocationResult> CheckServiceDivisionSubtree(int userCount)
         {
             Debug.Log($"CheckServiceDivisionSubtree(userCount={userCount})");
@@ -362,14 +170,14 @@ namespace SceneFlowTools.Runtime.Service
                 results.Add(result);
             }
 
-            results.Sort((a, b) => a.renderTime.CompareTo(b.renderTime));
+            results.Sort((a, b) => (a.gpuMemory, a.renderTime).CompareTo((b.gpuMemory, b.renderTime)));
 
             CalcServiceDependencies(results);
 
 
-            
-            
-            
+            // 如果两个服务依赖同一个服务，则可以合并
+            // 或者一个服务不依赖任何其他服务，也可以合并到任意一个服务
+            // 有问题，先注释掉
             // for (var i = 0; i < results.Count; i++)
             // {
             //     var server = results[i];
@@ -408,8 +216,8 @@ namespace SceneFlowTools.Runtime.Service
             if (results.Count > servers.Count)
             {
                 Debug.Log(
-                    $"CheckServiceDivisionSubtree(userCount={userCount}) is infeasible, resulting service count {results.Count} ({string.Join(",", results.Select(x => x.scenes.Count))})");
-                
+                    $"CheckServiceDivisionSubtree(userCount={userCount}) 不可行，结果服务数 {results.Count} ({string.Join(",", results.Select(x => x.scenes.Count))})");
+                // 输出依赖关系
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < results.Count; i++)
                 {
@@ -447,7 +255,7 @@ namespace SceneFlowTools.Runtime.Service
                 childrenResults.Add(DfsDivisionSubtree(rootId, userCount, divisionResults));
             }
 
-            childrenResults.Sort((a, b) => a.renderTime.CompareTo(b.renderTime));
+            childrenResults.Sort((a, b) => (a.gpuMemory, a.renderTime).CompareTo((b.gpuMemory, b.renderTime)));
             double gpuMemory = 0;
             double renderTime = 0;
             List<int> group = new();
@@ -456,14 +264,14 @@ namespace SceneFlowTools.Runtime.Service
                 if (gpuMemory + child.gpuMemory <= servers[0].gpuMemoryBytes &&
                     renderTime + child.renderTime <= 1.0 / fpsLimit)
                 {
-                    
+                    // 合并
                     gpuMemory += child.gpuMemory;
                     renderTime += child.renderTime;
                     group.AddRange(child.group);
                 }
                 else
                 {
-                    
+                    // 不合并，形成一个新的服务
                     divisionResults.Add(child);
                 }
             }
@@ -471,7 +279,7 @@ namespace SceneFlowTools.Runtime.Service
             if (group.Count > 0)
                 divisionResults.Add((gpuMemory, renderTime, group));
             //
-            
+            // // divisionResults 彼此之间可以合并
             // divisionResults.Sort((a, b) => b.renderTime.CompareTo(a.renderTime));
             // for (int i = 0; i < divisionResults.Count; i++)
             // {
@@ -483,7 +291,7 @@ namespace SceneFlowTools.Runtime.Service
             //         if (a.gpuMemory + b.gpuMemory <= servers[0].gpuMemory &&
             //             a.renderTime + b.renderTime <= 1.0 / fpsLimit)
             //         {
-            
+            //             // 合并
             //             divisionResults[i] = (a.gpuMemory + b.gpuMemory, a.renderTime + b.renderTime,
             //                 a.group.Concat(b.group).ToList());
             //             divisionResults.RemoveAt(j);
@@ -512,7 +320,7 @@ namespace SceneFlowTools.Runtime.Service
                 childrenResults.Add(DfsDivisionSubtree(cid, userCount, divisionResults));
             }
 
-            childrenResults.Sort((a, b) => a.renderTime.CompareTo(b.renderTime));
+            childrenResults.Sort((a, b) => (a.gpuMemory, a.renderTime).CompareTo((b.gpuMemory, b.renderTime)));
 
             double gpuMemory = node.metrics.gpuMemory + GetEstimatedGpuMemory(node.userProbability * userCount);
             double renderTime = EstimateRenderTime(node, userCount);
@@ -522,60 +330,19 @@ namespace SceneFlowTools.Runtime.Service
                 if (gpuMemory + child.gpuMemory <= servers[0].gpuMemoryBytes &&
                     renderTime + child.renderTime <= 1.0 / fpsLimit)
                 {
-                    
+                    // 合并
                     gpuMemory += child.gpuMemory;
                     renderTime += child.renderTime;
                     group.AddRange(child.group);
                 }
                 else
                 {
-                    
+                    // 不合并，形成一个新的服务
                     divisionResults.Add(child);
                 }
             }
 
             return (gpuMemory, renderTime, group);
-        }
-
-        private bool DoSplitNodes(int userCount, AllocationNode node)
-        {
-            while (node.metrics.gpuMemory > servers[0].gpuMemoryBytes)
-            {
-                
-                int heaviestId = FindHeavestNodeInChildren(node, n => n.metrics.gpuMemory).nodeId;
-                if (heaviestId == -1)
-                {
-                    
-                    return false;
-                }
-
-                
-                SplitAllocationNodeToChild(node, heaviestId);
-            }
-
-            while (EstimateRenderTime(node, userCount) > 1.0 / fpsLimit)
-            {
-                
-                int heaviestId = FindHeavestNodeInChildren(node, n => EstimateRenderTime(n, userCount)).nodeId;
-                if (heaviestId == -1)
-                {
-                    
-                    return false;
-                }
-
-                
-                SplitAllocationNodeToChild(node, heaviestId);
-            }
-
-            
-            foreach (var child in node.children)
-            {
-                if (!DoSplitNodes(userCount, child))
-                    return false;
-            }
-
-            
-            return true;
         }
 
         void CalcServiceDependencies(List<ServerAllocationResult> services)
@@ -585,7 +352,7 @@ namespace SceneFlowTools.Runtime.Service
                 server.relyOnServerId = -1;
             }
 
-            
+            // 计算服务间依赖关系
             for (int i = 0; i < services.Count; i++)
             {
                 var server = services[i];
@@ -606,7 +373,7 @@ namespace SceneFlowTools.Runtime.Service
             }
         }
 
-        
+        // A依赖B，当且仅当存在A中的场景的父场景在B中
         private bool IsRelyOn(HashSet<int> scenesA, HashSet<int> scenesB)
         {
             foreach (var sceneId in scenesA)
@@ -619,100 +386,7 @@ namespace SceneFlowTools.Runtime.Service
             return false;
         }
 
-        private (int nodeId, int index) FindHeavestNodeInChildren<T>(AllocationNode node,
-            Func<AllocationNode, T> keySelector)
-            where T : IComparable
-        {
-            var childNodes = Subscenes[node.rootId]
-                .subscenes
-                .Where(x => node.scenes.Contains(x))
-                .Select(CollectAllocationNodeInEdge);
-            return FindHeavestNode(childNodes, keySelector);
-        }
-
-        private (int nodeId, int index) FindHeavestNode<T>(IEnumerable<AllocationNode> nodes,
-            Func<AllocationNode, T> keySelector)
-            where T : IComparable
-        {
-            int heaviestId = -1;
-            int heaviestIndex = -1;
-            int index = 0;
-            T heaviestValue = default;
-            bool first = true;
-            foreach (var n in nodes)
-            {
-                var value = keySelector(n);
-                if (first || heaviestValue.CompareTo(value) < 0)
-                {
-                    // Debug.Log($"FindHeavestNode: found new heaviest node {n.rootId} with value {value}");
-                    heaviestId = n.rootId;
-                    heaviestIndex = index;
-                    heaviestValue = value;
-                    first = false;
-                }
-
-                index++;
-            }
-
-            return (heaviestId, heaviestIndex);
-        }
-
-        private List<AllocationNode> CollectEdgeFirstLayerNodes()
-        {
-            List<AllocationNode> nodes = new List<AllocationNode>();
-            foreach (int sceneId in _edgeScenes)
-            {
-                Subscene scene = Subscenes[sceneId];
-                if (SubsceneUtils.GetDepth(Subscenes, sceneId) != cloudSceneLayerCount) continue;
-                nodes.Add(CollectAllocationNodeInEdge(sceneId));
-            }
-
-            return nodes;
-        }
-
-        private void SplitAllocationNodeToChild(AllocationNode node, int splitId)
-        {
-            if (node.rootId == splitId) throw new Exception("splitId must not be the rootId");
-            if (!node.scenes.Contains(splitId)) throw new Exception($"splitId must be child of node: {splitId}");
-            AllocationNode other = CollectAllocationNodeInEdge(splitId);
-            node.scenes = node.scenes.Except(other.scenes).ToHashSet();
-            node.metrics -= other.metrics;
-            node.children.Add(other);
-        }
-
-        private (AllocationNode root, AllocationNode other) SplitAllocationNode(AllocationNode node, int splitId)
-        {
-            if (node.rootId == splitId) throw new Exception("splitId must not be the rootId");
-            if (!node.scenes.Contains(splitId)) throw new Exception($"splitId must be child of node: {splitId}");
-            AllocationNode other = CollectAllocationNodeInEdge(splitId);
-            AllocationNode root = new AllocationNode
-            {
-                rootId = node.rootId,
-                scenes = node.scenes.Except(other.scenes).ToHashSet(),
-                userProbability = node.userProbability,
-                metrics = node.metrics - other.metrics,
-            };
-            return (root, other);
-        }
-
-        private AllocationNode CollectAllocationNodeInEdge(int p)
-        {
-            AllocationNode node = new AllocationNode
-            {
-                rootId = p,
-                scenes = CollectSubtreeScenesInEdge(p),
-                userProbability = Subscenes[p].userProbability,
-                metrics = new SubsceneMetrics()
-            };
-            foreach (int sceneId in node.scenes)
-            {
-                node.metrics += Subscenes[sceneId].metrics;
-            }
-
-            return node;
-        }
-
-        
+        // 收集子树p中的所有edge上的场景
         private HashSet<int> CollectSubtreeScenesInEdge(int p)
         {
             if (!_edgeScenes.Contains(p)) throw new Exception("p must be in edge scenes");
@@ -745,23 +419,66 @@ namespace SceneFlowTools.Runtime.Service
 
         private void OnDrawGizmosSelected()
         {
-            if (allocationResult?.edgeServers == null) return;
+            if (allocationResult?.edgeServers == null || Subscenes == null) return;
+            Dictionary<string, GameObject> id2ObjMap = null;
+            if (gizmosMode == ServiceAllocationGizmosMode.BoundsAndObjects)
+            {
+                id2ObjMap = MetaInfo.CollectAllDict();
+            }
+
             List<int> ids = gizmosEdgeId < 0 || gizmosEdgeId >= allocationResult.edgeServers.Count
                 ? Enumerable.Range(0, allocationResult.edgeServers.Count).ToList()
                 : new List<int> { gizmosEdgeId };
+            HashSet<int> displayedEdgeSceneIds = new();
             foreach (int i in ids)
             {
                 var server = allocationResult.edgeServers[i];
                 Color color = gizmosColors[i % gizmosColors.Length];
                 foreach (var sceneId in server.scenes)
                 {
-                    var scene = Subscenes[sceneId];
-                    if (scene == null) continue;
-                    var bounds = scene.bounds;
-                    Gizmos.color = color;
-                    Gizmos.DrawWireCube(bounds.center, bounds.size);
+                    if (!IsValidSceneId(sceneId)) continue;
+                    displayedEdgeSceneIds.Add(sceneId);
+                    DrawSceneGizmos(sceneId, color, id2ObjMap);
                 }
             }
+
+            HashSet<int> clientSceneIds = new();
+            foreach (var sceneId in displayedEdgeSceneIds)
+            {
+                clientSceneIds.UnionWith(SubsceneUtils.CollectSubsceneIds(Subscenes, new[] { sceneId }));
+            }
+
+            clientSceneIds.ExceptWith(displayedEdgeSceneIds);
+            clientSceneIds.IntersectWith(allocationResult.deviceScenes);
+            foreach (var sceneId in clientSceneIds)
+            {
+                if (!IsValidSceneId(sceneId)) continue;
+                DrawSceneGizmos(sceneId, gizmosSubtreeColor, id2ObjMap);
+            }
+        }
+
+        private bool IsValidSceneId(int sceneId)
+        {
+            return sceneId >= 0 && sceneId < Subscenes.Count && Subscenes[sceneId] != null;
+        }
+
+        private void DrawSceneGizmos(int sceneId, Color color, Dictionary<string, GameObject> id2ObjMap)
+        {
+            var scene = Subscenes[sceneId];
+            if (id2ObjMap != null && scene.objectIds != null)
+            {
+                foreach (var objId in scene.objectIds)
+                {
+                    if (string.IsNullOrEmpty(objId)) continue;
+                    if (id2ObjMap.TryGetValue(objId, out var obj))
+                    {
+                        MyGizmosUtils.GizmosObjectWireMesh(obj, color);
+                    }
+                }
+            }
+
+            Gizmos.color = color;
+            Gizmos.DrawWireCube(scene.bounds.center, scene.bounds.size);
         }
     }
 
@@ -777,27 +494,27 @@ namespace SceneFlowTools.Runtime.Service
     [Serializable]
     public class ServerAllocationResult
     {
-        public List<int> rootScenes = new(); 
-        public List<int> scenes = new(); 
-        public List<int> deviceScenes = new(); 
+        public List<int> rootScenes = new(); // 根场景
+        public List<int> scenes = new(); // 场景
+        public List<int> deviceScenes = new(); // 设备场景
         public double renderTime;
         public double gpuMemory;
-        public int relyOnServerId = -1; 
+        public int relyOnServerId = -1; // 依赖的服务器ID，-1表示不依赖
     }
 
     [Serializable]
     public class AllocationResult
     {
-        public int maxUserCount; 
-        public List<int> cloudScenes; 
-        public List<int> deviceScenes; 
+        public int maxUserCount; // 支持的最大用户数
+        public List<int> cloudScenes; // 云端场景
+        public List<int> deviceScenes; // 设备场景
 
-        public List<ServerAllocationResult> edgeServers; 
+        public List<ServerAllocationResult> edgeServers; // 边缘服务器
     }
 
     /// <summary>
-    
-    
+    /// 服务器信息（指的是虚拟化后的逻辑服务器）
+    /// 每个服务器只承载一个微服务
     /// </summary>
     [Serializable]
     public class ServerInfo

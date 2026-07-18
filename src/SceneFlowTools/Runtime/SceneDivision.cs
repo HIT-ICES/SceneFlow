@@ -8,7 +8,7 @@ namespace SceneFlowTools.Runtime
     [RequireComponent(typeof(MeshObjectList))]
     public class SceneDivision : MonoBehaviour
     {
-        
+        // 第一步，进行全局的场景划分
         public GlobalDivisionParams globalDivisionParams;
         [NonSerialized]
         public bool regenerateSceneInfo = true;
@@ -19,7 +19,7 @@ namespace SceneFlowTools.Runtime
         public int showGlobalDivisionRegionIndex;
 
 
-        
+        // 第二步，进行包围结构的划分
         public VoxelizeOptions roomDivisionParams;
         public VoxelizeResult roomDivisionResult;
         [NonSerialized]
@@ -86,16 +86,42 @@ namespace SceneFlowTools.Runtime
     {
         public GlobalDivisionMethod method = GlobalDivisionMethod.Dbscan;
         public DbscanExtraParams dbscanExtraParams = new DbscanExtraParams();
+
+        public Dictionary<string, object> ToRequestExtra()
+        {
+            return dbscanExtraParams.ToRequestExtra();
+        }
     }
 
     [Serializable]
     public class DbscanExtraParams
     {
         public float downsampleStep = 0.5f;
-        public float eps = 2.0f; 
-        public int minSamples = 10; 
-        [Tooltip("KMeans")]
-        public int numClusters = 4; 
+        public float eps = 2.0f; // 邻域半径
+        public int minSamples = 10; // 最小点数
+        [Tooltip("Let SceneFlowService select DBSCAN eps and min_samples automatically.")]
+        public bool autoCalibration;
+        [Tooltip("KMeans使用")]
+        public int numClusters = 4; // 簇数量
+
+        public Dictionary<string, object> ToRequestExtra()
+        {
+            var extra = new Dictionary<string, object>
+            {
+                { "downsample_step", downsampleStep },
+                { "num_clusters", numClusters }
+            };
+
+            if (autoCalibration)
+            {
+                extra["auto_calibration"] = true;
+                return extra;
+            }
+
+            extra["eps"] = eps;
+            extra["min_samples"] = minSamples;
+            return extra;
+        }
     }
 
     [Serializable]

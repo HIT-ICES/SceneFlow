@@ -1,0 +1,57 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#define X 16
+#define Y 16
+#define ITER 8
+
+Texture2D SourceTexture;
+RWTexture2D<float4> TargetTexture;
+int Width;
+int Height;
+groupshared float4 cache[X][Y];
+bool IsHolePixel(float4 c)
+{
+    return c.g > 0.99 && c.r < 0.01 && c.b < 0.01;
+}
+
+[numthreads(X,Y,1)]
+void CSMain(uint3 id : SV_DispatchThreadID, int3 groupID : SV_GroupThreadID)
+{
+    // 不要加这一行，否则会导致错误，因为GroupMemoryBarrierWithGroupSync必须在每个线程都调用
+    // if (id.x >= Width || id.y >= Height) return;
+    cache[groupID.x][groupID.y] = SourceTexture[id.xy];
+    GroupMemoryBarrierWithGroupSync();
+    for (int i = 0; i < ITER; i++)
+    {
+        if (IsHolePixel(cache[groupID.x][groupID.y]))
+        {
+            for (int x = -1; x <= 1; x++)
+            {
+                if (!IsHolePixel(cache[groupID.x][groupID.y]))
+                {
+                    break;
+                }
+                for (int y = -1; y <= 1; y++)
+                {
+                    if (x == 0 && y == 0)continue;
+                    if (groupID.x + x < 0 || groupID.x + x >= X || groupID.y + y < 0 || groupID.y + y >= Y)
+                    {
+                        continue;
+                    }
+                    if (id.x + x < 0 || id.x + x >= Width || id.y + y < 0 || id.y + y >= Height)
+                    {
+                        continue;
+                    }
+                    if (!IsHolePixel(cache[groupID.x + x][groupID.y + y]))
+                    {
+                        cache[groupID.x][groupID.y] = cache[groupID.x + x][groupID.y + y];
+                        break;
+                    }
+                }
+            }
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    TargetTexture[id.xy] = cache[groupID.x][groupID.y];
+}

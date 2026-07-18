@@ -52,7 +52,7 @@ namespace SceneFlowTools.Runtime.Service
                 result.cloudObjects.Add(new());
             }
 
-
+            List<ManualAllocationMarker> validMarkers = new();
             foreach (var marker in markers)
             {
                 if (marker.partId < 0 || marker.partId > maxId)
@@ -61,28 +61,21 @@ namespace SceneFlowTools.Runtime.Service
                     continue;
                 }
 
-                switch (marker.deployment)
+                if (!IsValidDeployment(marker.deployment))
                 {
-                    case SceneDeployment.Device:
-                        result.deviceObjects[marker.partId].Add(marker.gameObject);
-                        if (marker.includeChildren)
-                        {
-                            result.deviceObjects[marker.partId].UnionWith(GetChildObjects(marker.gameObject));
-                        }
+                    Debug.LogError($"ManualAllocationMarker {marker.name} has invalid deployment");
+                    continue;
+                }
 
-                        break;
-                    case SceneDeployment.Edge:
-                        result.edgeObjects[marker.partId].Add(marker.gameObject);
-                        if (marker.includeChildren)
-                        {
-                            result.edgeObjects[marker.partId].UnionWith(GetChildObjects(marker.gameObject));
-                        }
+                validMarkers.Add(marker);
+            }
 
-                        result.edgeObjects[marker.partId].ExceptWith(result.deviceObjects[marker.partId]);
-                        break;
-                    default:
-                        Debug.LogError($"ManualAllocationMarker {marker.name} has invalid deployment");
-                        break;
+            foreach (var marker in validMarkers)
+            {
+                foreach (GameObject obj in GetMarkedObjects(marker))
+                {
+                    if (!IsClosestApplicableMarker(marker, obj)) continue;
+                    AddObject(result, marker.partId, marker.deployment, obj);
                 }
             }
 
@@ -95,6 +88,61 @@ namespace SceneFlowTools.Runtime.Service
             }
 
             return result;
+        }
+
+        private static bool IsValidDeployment(SceneDeployment deployment)
+        {
+            switch (deployment)
+            {
+                case SceneDeployment.Device:
+                case SceneDeployment.Edge:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static void AddObject(ManualAllocationResult result, int partId, SceneDeployment deployment,
+            GameObject obj)
+        {
+            switch (deployment)
+            {
+                case SceneDeployment.Device:
+                    result.deviceObjects[partId].Add(obj);
+                    break;
+                case SceneDeployment.Edge:
+                    result.edgeObjects[partId].Add(obj);
+                    break;
+            }
+        }
+
+        private static IEnumerable<GameObject> GetMarkedObjects(ManualAllocationMarker marker)
+        {
+            yield return marker.gameObject;
+            if (!marker.includeChildren) yield break;
+
+            foreach (GameObject obj in GetChildObjects(marker.gameObject))
+            {
+                yield return obj;
+            }
+        }
+
+        private static bool IsClosestApplicableMarker(ManualAllocationMarker marker, GameObject obj)
+        {
+            Transform current = obj.transform;
+            while (current != null && current != marker.transform)
+            {
+                foreach (ManualAllocationMarker closerMarker in current.GetComponents<ManualAllocationMarker>())
+                {
+                    if (closerMarker.partId != marker.partId) continue;
+                    if (!IsValidDeployment(closerMarker.deployment)) continue;
+                    if (current == obj.transform || closerMarker.includeChildren) return false;
+                }
+
+                current = current.parent;
+            }
+
+            return current == marker.transform;
         }
 
         private static List<GameObject> GetChildObjects(GameObject parent, List<GameObject> list = null)

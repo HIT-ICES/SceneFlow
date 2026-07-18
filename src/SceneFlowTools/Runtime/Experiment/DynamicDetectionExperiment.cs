@@ -9,11 +9,15 @@ using UnityEngine.SceneManagement;
 namespace SceneFlowTools.Runtime.Experiment
 {
     /// <summary>
-    
+    /// 用于动态检测实验的分析脚本
     /// </summary>
     public class DynamicDetectionExperiment : MonoBehaviour
     {
         public DynamicDetectionManager detector;
+        public DynamicDetectionMode sampleDetectionMode = DynamicDetectionMode.DirectLLM;
+        public bool sampleUseCache = true;
+        public int sampleAgentMaxToolCalls = 6;
+        public int sampleDirectBatchSize = 16;
 
         public DynDetectExpResult ExpCurrentScene()
         {
@@ -77,6 +81,10 @@ namespace SceneFlowTools.Runtime.Experiment
     public class DynDetectExpResult
     {
         public string sceneName;
+        public int promptTokens;
+        public int completionTokens;
+        public int toolCalls;
+        public double analysisSeconds;
         public List<DynDetectExpItem> items = new List<DynDetectExpItem>();
     }
 

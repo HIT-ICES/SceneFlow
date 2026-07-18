@@ -1,0 +1,55 @@
+# =============== #
+# Unity generated #
+# =============== #
+[Tt]emp/
+[Oo]bj/
+[Bb]uild
+[Ll]ibrary/
+[Bb]in/
+Logs/
+sysinfo.txt
+*.box
+*.box.swp
+publish/
+
+# ===================================== #
+# Visual Studio / MonoDevelop generated #
+# ===================================== #
+[Ee]xported[Oo]bj/
+/*.userprefs
+/*.csproj
+/*.pidb
+/*.suo
+/*.sln*
+/*.user
+/*.unityproj
+/*.booproj
+/.vs*
+
+# ============ #
+# OS generated #
+# ============ #
+.DS_Store*
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+[Tt]humbs.db
+/Assets/Props Animations
+/Assets/Props Animations.meta
+/Assets/Gaia
+/Assets/Gaia.meta
+/Assets/ErosionBrush
+/Assets/Super Sampling (SSAA)
+/Assets/Camera Filter Pack
+/Assets/Ignored
+
+translation/
+
+pxr_driver_sdk.log
+
+*.gobj_info.json
+*.gobj_info.json.meta
+ps_driver_sdk.log
+service_config.json

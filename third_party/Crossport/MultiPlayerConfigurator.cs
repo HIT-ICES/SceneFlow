@@ -5,22 +5,38 @@ using System.IO;
 using System.Linq;
 using Ices.Crossport.ObjectModel;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace CrossportPlus
 {
     public class MultiPlayerConfigurator : MonoBehaviour
     {
         private string MultiPlayerConfigPath => "multiplayer.json";
+        private const string GracefulStopSignalFileName = "sceneflow_graceful_stop.signal";
+        private const float GracefulStopPollIntervalSeconds = 0.5f;
+        private const float GracefulStopQuitDelaySeconds = 5f;
+
         public List<GameObject> player;
         public GameObject sender;
         public GameObject receiver;
+
+        [Header("ADB Graceful Stop")]
+        [SerializeField] private bool enableAdbGracefulStop = true;
+
         private MultiPlayerConfig _config;
+        private bool _gracefulStopRequested;
 
         private List<GameObject> _additionalSenders = new();
         private List<GameObject> _additionalReceivers = new();
 
+        // Experiment automation hook: adb creates a signal file under the app files
+        // directory, then this component invokes the existing Stop button so Crossport
+        // stats are submitted before the Android app exits.
         public void Start()
         {
+            if (enableAdbGracefulStop)
+                StartCoroutine(WatchGracefulStopSignal());
+
             var args = Environment.GetCommandLineArgs().ToList();
             var fakeClientArgIndex = args.IndexOf("-fake-client");
             if (fakeClientArgIndex != -1 && fakeClientArgIndex + 1 < args.Count &&
@@ -75,6 +91,83 @@ namespace CrossportPlus
                     newRemoting.transform.rotation = Quaternion.Euler(c.rotation.Value);
                 newRemoting.name = $"{sender.name}-MultiPlayer-{i}";
             }
+        }
+
+        private IEnumerator WatchGracefulStopSignal()
+        {
+            while (!_gracefulStopRequested)
+            {
+                var signalPath = FindGracefulStopSignalPath();
+                if (!string.IsNullOrEmpty(signalPath))
+                {
+                    _gracefulStopRequested = true;
+                    DeleteGracefulStopSignal(signalPath);
+                    yield return GracefulStopAndQuit();
+                    yield break;
+                }
+
+                yield return new WaitForSeconds(GracefulStopPollIntervalSeconds);
+            }
+        }
+
+        private string FindGracefulStopSignalPath()
+        {
+            foreach (var path in GracefulStopSignalPaths())
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+
+            return null;
+        }
+
+        private IEnumerable<string> GracefulStopSignalPaths()
+        {
+            yield return Path.Combine(Application.persistentDataPath, GracefulStopSignalFileName);
+            yield return GracefulStopSignalFileName;
+        }
+
+        private void DeleteGracefulStopSignal(string signalPath)
+        {
+            try
+            {
+                File.Delete(signalPath);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Failed to delete graceful stop signal file: {signalPath}. {e}");
+            }
+        }
+
+        private IEnumerator GracefulStopAndQuit()
+        {
+            Debug.Log("ADB graceful stop signal received. Invoking StopButton before quit.");
+
+            var stopButton = FindStopButton();
+            if (stopButton == null)
+            {
+                Debug.LogWarning("StopButton not found. Quitting without submitting Crossport stats.");
+            }
+            else
+            {
+                stopButton.onClick.Invoke();
+            }
+
+            yield return new WaitForSeconds(GracefulStopQuitDelaySeconds);
+            Debug.Log("Graceful stop wait finished. Quitting application.");
+            Application.Quit();
+        }
+
+        private Button FindStopButton()
+        {
+            var buttons = Resources.FindObjectsOfTypeAll<Button>()
+                .Where(button => button != null &&
+                                 button.name == "StopButton" &&
+                                 button.gameObject.scene.IsValid())
+                .ToList();
+
+            return buttons.FirstOrDefault(button => button.gameObject.activeInHierarchy)
+                   ?? buttons.FirstOrDefault();
         }
 
         public IEnumerator ForceScreenSize(int width, int height)

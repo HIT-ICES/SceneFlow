@@ -1,1 +1,0 @@
-Get asset from [The-Virtual-Classroom](https://github.com/Arduino-Projects/The-Virtual-Classroom)

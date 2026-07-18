@@ -44,6 +44,7 @@ namespace Ices.Crossport.Diagnostics
     {
         [JsonProperty] public double min;
         [JsonProperty] public double max;
+        [JsonProperty] public double average;
         [JsonProperty] public List<double> raw;
         [JsonProperty] public uint frameCount;
         [JsonProperty] public long timeDiff;
@@ -55,6 +56,7 @@ namespace Ices.Crossport.Diagnostics
                    {
                        min = raw.Min(),
                        max = raw.Max(),
+                       average = raw.Average(),
                        raw = raw,
                        frameCount = frameCount,
                        timeDiff = timeDiff

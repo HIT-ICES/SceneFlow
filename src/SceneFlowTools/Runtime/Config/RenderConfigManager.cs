@@ -11,7 +11,7 @@ using UnityEngine.Events;
 
 namespace SceneFlowTools.Runtime.Config
 {
-    
+    // 渲染控制组件
     public class RenderConfigManager : MonoBehaviour
     {
         private const string ServiceConfigPath = "service_config.json";
@@ -36,8 +36,8 @@ namespace SceneFlowTools.Runtime.Config
 
         [NonSerialized] public NodeGizmosSettings nodeGizmosSettings = new NodeGizmosSettings();
 
-        
-        
+        // 运行时，从文件读取ServiceConfig
+        // 根据配置决定渲染哪些物体
         private void Start()
         {
             if (!Application.isEditor)
@@ -72,14 +72,74 @@ namespace SceneFlowTools.Runtime.Config
 
             var mapId2Obj = MetaInfo.CollectAllDict();
             List<(GameObject gameObject, string id)> objects = MetaInfo.CollectAll();
-            HashSet<string> objectsToRender =
-                new HashSet<string>(sceneConfig.CollectObjects(serviceConfig.activeScenes));
+            HashSet<string> objectsToRender = serviceConfig.specialTag switch
+            {
+                "full" => objects.Select(x => x.id).ToHashSet(),
+                "thin" => new HashSet<string>(),
+                _ => GetDefaultObjectsToRender(mapId2Obj)
+            };
+
+            if (serviceConfig.specialTag == "full")
+            {
+                Debug.Log("Service config specialTag=full: render all objects.");
+            }
+            else if (serviceConfig.specialTag == "thin")
+            {
+                Debug.Log("Service config specialTag=thin: disable all configured objects.");
+            }
+
+            int disabledCount = 0;
+
+            foreach (var (gObj, id) in objects)
+            {
+                if (objectsToRender.Contains(id)) continue;
+                if (ignore != null && gObj.transform.IsChildOf(ignore.transform))
+                {
+                    Debug.Log($"Ignore render disable for object: {gObj.name} ({id})");
+                    continue;
+                }
+
+                // Debug.Log($"Disable render for object: {gObj.name} ({id})");
+                DisableObjectRender(gObj);
+                disabledCount++;
+            }
+            
+            Debug.Log($"Render disabled objects: {disabledCount}");
+
+            StartCoroutine(AsyncReleaseMemory());
+            StartCoroutine(LogStatics());
+        }
+
+        private HashSet<string> GetDefaultObjectsToRender(Dictionary<string, GameObject> mapId2Obj)
+        {
+            List<int> activeSceneIds = serviceConfig.activeScenes ?? new List<int>();
+            HashSet<string> objectsToRender = new HashSet<string>(sceneConfig.CollectObjects(activeSceneIds));
             if (serviceConfig.activeObjects != null)
-                objectsToRender.UnionWith(serviceConfig.activeObjects);
-            var scenes = serviceConfig.activeScenes.Select(id => sceneConfig.scenes[id]).ToList();
+            {
+                HashSet<string> configuredActiveObjects = serviceConfig.activeObjects
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .ToHashSet();
+                HashSet<string> matchedActiveObjects = configuredActiveObjects
+                    .Where(mapId2Obj.ContainsKey)
+                    .ToHashSet();
+                int missingCount = configuredActiveObjects.Count - matchedActiveObjects.Count;
+                Debug.Log(
+                    $"Service config activeObjects: configured={configuredActiveObjects.Count}, matched={matchedActiveObjects.Count}, missing={missingCount}");
+                if (configuredActiveObjects.Count > 0 && matchedActiveObjects.Count * 2 < configuredActiveObjects.Count)
+                {
+                    string missingSamples = string.Join(", ",
+                        configuredActiveObjects.Where(id => !mapId2Obj.ContainsKey(id)).Take(5));
+                    Debug.LogError(
+                        $"Most service config activeObjects do not exist in the current scene. missingSamples=[{missingSamples}]");
+                }
+
+                objectsToRender.UnionWith(matchedActiveObjects);
+            }
+
+            var scenes = activeSceneIds.Select(id => sceneConfig.scenes[id]).ToList();
             var dynamicObjects =
                 dynamicDetectionManager.data.ObjectsDynamicInfo
-                    .Where(x => x.DynamicType .IsDynamic())
+                    .Where(x => x.DynamicType.IsDynamic())
                     .Select(x => x.ObjectId)
                     .Where(x => mapId2Obj.ContainsKey(x))
                     .Select(x => (x, BoundsUtils.From(mapId2Obj[x])))
@@ -93,23 +153,11 @@ namespace SceneFlowTools.Runtime.Config
             else
             {
                 objectsToRender.UnionWith(dynamicObjects);
+                // add player
+                objectsToRender.UnionWith(player.GetComponentsInChildren<MetaInfo>().Select(x => x.uid));
             }
 
-            foreach (var (gObj, id) in objects)
-            {
-                if (objectsToRender.Contains(id)) continue;
-                if (ignore != null && gObj.transform.IsChildOf(ignore.transform))
-                {
-                    Debug.Log($"Ignore render disable for object: {gObj.name} ({id})");
-                    continue;
-                }
-
-                // Debug.Log($"Disable render for object: {gObj.name} ({id})");
-                DisableObjectRender(gObj);
-            }
-
-            StartCoroutine(AsyncReleaseMemory());
-            StartCoroutine(LogStatics());
+            return objectsToRender;
         }
 
         IEnumerator LogStatics()
@@ -138,17 +186,17 @@ namespace SceneFlowTools.Runtime.Config
 
         IEnumerator AsyncReleaseMemory()
         {
-            
+            // 先等待几帧，确保所有删除操作完成
             for (int i = 0; i < 5; i++)
                 yield return null;
-            
+            // C# GC，回收托管对象
             GC.Collect();
-            
+            // Unity资源回收，回收未使用的资源
             Debug.Log("AsyncReleaseMemory: start Resources.UnloadUnusedAssets");
             var op = Resources.UnloadUnusedAssets();
             yield return op;
             Debug.Log("AsyncReleaseMemory: complete Resources.UnloadUnusedAssets");
-            
+            // 再次C# GC，确保彻底回收
             GC.Collect();
             Debug.Log("AsyncReleaseMemory: complete GC.Collect");
         }
@@ -165,28 +213,28 @@ namespace SceneFlowTools.Runtime.Config
             started = true;
         }
 
-        
-        
-        
-        
+        // 阻止物体渲染
+        // 不包括子物体
+        // 不应该直接Disable物体，因为这样会影响脚本的运行
+        // 应该通过禁用Renderer组件、Collider组件等方式来实现
         void DisableObjectRender(GameObject obj)
         {
             if (obj == null) return;
             if (obj.TryGetComponent(out Renderer r))
             {
                 r.enabled = false;
-                
+                // 清理材质（如是实例化材质可Destroy，否则用sharedMaterial不用销毁）
                 if (r.material != null && r.material != r.sharedMaterial)
                 {
                     Destroy(r.material);
                 }
 
                 r.material = null;
-                
+                // 移除Renderer组件
                 Destroy(r);
             }
 
-            
+            // 清理Mesh（针对MeshFilter或SkinnedMeshRenderer）
             if (obj.TryGetComponent(out MeshFilter mf))
             {
                 if (mf.mesh != null && mf.mesh != mf.sharedMesh)

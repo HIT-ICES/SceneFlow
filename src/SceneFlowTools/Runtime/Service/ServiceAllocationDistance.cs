@@ -10,17 +10,26 @@ namespace SceneFlowTools.Runtime.Service
     {
         public int id = 0;
         public double edgeDistance = 10f;
+        public double mucvrRadius = 10f;
+        public double coterieRadius = 10f;
+        public int coterieTriangleBudget = 500000;
+        public DistanceMeasureMode distanceMeasureMode = DistanceMeasureMode.Bounds;
+        public bool forceDynamicObjectsToNear = true;
         public bool deviceIncludeInside = true;
         public MeshObjectList meshObjectList;
         public DynamicDetectionManager dynamicDetectionManager;
-        public DistanceAllocResult result;
+        [NonSerialized] public DistanceGizmosConfig gizmosConfig = DistanceGizmosConfig.None;
+        [NonSerialized] public DistanceAllocResult distanceResult;
+        [NonSerialized] public DistanceAllocResult mucvrResult;
+        [NonSerialized] public DistanceAllocResult coterieResult;
 
 
         private void OnDrawGizmosSelected()
         {
-            if (result == null) return;
+            DistanceAllocResult gizmosResult = GetGizmosResult();
+            if (gizmosResult == null) return;
             var id2ObjMap = MetaInfo.CollectAllDict();
-            foreach (var deviceObjName in result.deviceObjects)
+            foreach (var deviceObjName in gizmosResult.deviceObjects ?? new List<string>())
             {
                 if (id2ObjMap.TryGetValue(deviceObjName, out var obj))
                 {
@@ -28,14 +37,47 @@ namespace SceneFlowTools.Runtime.Service
                 }
             }
 
-            foreach (var edgeObjName in result.edgeObjects)
+            foreach (var edgeObjName in gizmosResult.edgeObjects ?? new List<string>())
             {
                 if (id2ObjMap.TryGetValue(edgeObjName, out var obj))
                 {
                     MyGizmosUtils.GizmosObjectWireMesh(obj, Color.blue);
                 }
             }
+
+            foreach (var cloudObjName in gizmosResult.cloudObjects ?? new List<string>())
+            {
+                if (id2ObjMap.TryGetValue(cloudObjName, out var obj))
+                {
+                    MyGizmosUtils.GizmosObjectWireMesh(obj, Color.green);
+                }
+            }
         }
+
+        private DistanceAllocResult GetGizmosResult()
+        {
+            return gizmosConfig switch
+            {
+                DistanceGizmosConfig.None => null,
+                DistanceGizmosConfig.MucvrStyle => mucvrResult,
+                DistanceGizmosConfig.CoterieStyle => coterieResult,
+                _ => distanceResult
+            };
+        }
+    }
+
+    public enum DistanceGizmosConfig
+    {
+        None,
+        Distance,
+        MucvrStyle,
+        CoterieStyle,
+    }
+
+    public enum DistanceMeasureMode
+    {
+        Bounds,
+        MeshSurface,
     }
 
     [Serializable]
@@ -43,5 +85,6 @@ namespace SceneFlowTools.Runtime.Service
     {
         public List<string> deviceObjects = new List<string>();
         public List<string> edgeObjects = new List<string>();
+        public List<string> cloudObjects = new List<string>();
     }
 }

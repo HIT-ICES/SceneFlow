@@ -152,7 +152,7 @@ namespace Ices.Crossport.Diagnostics
                     $"[FrameRateRecorder] Inbound Stats: framesReceived={inboundStats.framesReceived}, timestamp={inboundStats.Timestamp}, fps={inboundStats.framesPerSecond}");
                 Debug.Log(
                     $"[FrameRateRecorder] Stats: fps={frameDiff / timeDiff:0.00}");
-                if (timeDiff != time)
+                if (frameDiff != 0 && timeDiff != time)
                     AddRemoteFps(frameDiff / timeDiff);
 
                 // if (remoteInitTimestamp == 0)

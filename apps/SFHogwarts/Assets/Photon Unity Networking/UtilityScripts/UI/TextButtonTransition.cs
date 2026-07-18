@@ -1,0 +1,43 @@
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="TextButtonTransition.cs" company="Exit Games GmbH">
+// </copyright>
+// <summary>
+//  Use this on Button texts to have some color transition on the text as well without corrupting button's behaviour.
+// </summary>
+// <author>developer@exitgames.com</author>
+// --------------------------------------------------------------------------------------------------------------------
+
+
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+namespace ExitGames.UtilityScripts
+{
+    /// <summary>
+    ///     Use this on Button texts to have some color transition on the text as well without corrupting button's behaviour.
+    /// </summary>
+    [RequireComponent(typeof(Text))]
+    public class TextButtonTransition : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        private Text _text;
+        public Color HoverColor = Color.black;
+
+        public Color NormalColor = Color.white;
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            _text.color = HoverColor;
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            _text.color = NormalColor;
+        }
+
+        public void Awake()
+        {
+            _text = GetComponent<Text>();
+        }
+    }
+}

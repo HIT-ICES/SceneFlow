@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 0
+    path: Assets/Scenes/Intro.unity
+    guid: 95ba98dfdae59a8408750af57aec3849
+  - enabled: 0
+    path: Assets/Scenes/MainMenu.unity
+    guid: 8d8f2cbb7cb0c884797a9a8380140538
+  - enabled: 0
+    path: Assets/Scenes/Hogwarts.unity
+    guid: 3d4b8fe654e9ce245b19088926f6bcd4
+  - enabled: 0
+    path: Assets/Scenes/Test.unity
+    guid: 73a963877be919449a306b8de55faf8c
+  - enabled: 1
+    path: Assets/Scenes/HogwartsFull.unity
+    guid: 45f0600c7c5edc84db7d96a8c69c7061
+  m_configObjects:
+    Unity.XR.PICO.LivePreview.Settings: {fileID: 11400000, guid: b535a16bd5e9e274d8c2cc2f337d056d,
+      type: 2}
+    com.unity.input.settings: {fileID: 11400000, guid: 9f1b8565a4276f44490794f55ddaf418,
+      type: 2}
+    com.unity.renderstreaming.settings: {fileID: 11400000, guid: 57da4e78a44b7ac4eb6c05cfb5cbb688,
+      type: 2}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: a58bec0c3b0248d4ea73ef7b16854ff3,
+      type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 4a36988234a88d04d946f44c42103385,
+      type: 2}

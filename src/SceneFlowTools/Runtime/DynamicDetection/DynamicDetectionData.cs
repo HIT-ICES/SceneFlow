@@ -7,6 +7,7 @@ namespace SceneFlowTools.Runtime.DynamicDetection
     [Serializable]
     public class DynamicDetectionData : ScriptableObject
     {
+        public string DetectionMode;
         public List<ScriptDynamicInfo> ScriptsDynamicInfo = new();
         public List<GObjectDynamicInfo> ObjectsDynamicInfo = new();
 
@@ -20,6 +21,13 @@ namespace SceneFlowTools.Runtime.DynamicDetection
         Static,
         Dynamic,
         DynamicInteractive,
+    }
+
+    [Serializable]
+    public enum DynamicDetectionMode
+    {
+        DirectLLM,
+        Agent,
     }
 
     public static class ObjectDynamicTypeExtensions
@@ -64,5 +72,51 @@ namespace SceneFlowTools.Runtime.DynamicDetection
         public List<DynamicInfo> results;
         public int promptTokens;
         public int completionTokens;
+    }
+
+    [Serializable]
+    public class DynamicDetectionContextScript
+    {
+        public string scriptPath;
+        public string className;
+        public string sourceHash;
+        public string source;
+        public List<string> fields = new();
+        public bool isBuiltin;
+    }
+
+    [Serializable]
+    public class DynamicDetectionAgentConfig
+    {
+        public int maxToolCalls = 6;
+        public bool enableGlobalScriptSearch = true;
+    }
+
+    [Serializable]
+    public class DynamicDetectionAgentRequest
+    {
+        public string sceneId;
+        public List<DynamicDetectionContextScript> scripts = new();
+        public List<string> targetScriptPaths = new();
+        public List<string> components = new();
+        public bool useCache = true;
+        public DynamicDetectionAgentConfig agentConfig = new();
+    }
+
+    [Serializable]
+    public class DynamicDetectionAgentScriptResult
+    {
+        public string scriptPath;
+        public DynamicInfo[] dynamics;
+        public List<string> warnings;
+    }
+
+    [Serializable]
+    public class DynamicDetectionAgentResult
+    {
+        public List<DynamicDetectionAgentScriptResult> scripts = new();
+        public int promptTokens;
+        public int completionTokens;
+        public int toolCalls;
     }
 }

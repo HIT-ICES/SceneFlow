@@ -17,7 +17,7 @@ namespace SceneFlowTools.Runtime
             }
             if (result.Length > 1)
             {
-                result.Length -= 2; 
+                result.Length -= 2; // 去掉最后的逗号和空格
             }
             result.Append("}");
             return result.ToString();

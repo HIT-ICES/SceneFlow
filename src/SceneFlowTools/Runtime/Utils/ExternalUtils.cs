@@ -26,7 +26,7 @@ namespace SceneFlowTools.Runtime
             ServicePointManager.DefaultConnectionLimit = 32;
             return new()
             {
-                Timeout = TimeSpan.FromSeconds(600)
+                Timeout = TimeSpan.FromSeconds(1800)
             };
         }
 
@@ -74,21 +74,46 @@ namespace SceneFlowTools.Runtime
             return await PostAsync<DynamicDetectionResult>("/dynamic_detection", content).ConfigureAwait(false);
         }
 
+        public static async Task<DynamicDetectionAgentResult> DynamicDetectionAgent(
+            DynamicDetectionAgentRequest request)
+        {
+            await AssertEndpointExists("/dynamic_detection_agent").ConfigureAwait(false);
+            var content = CreateGzipJsonContent(request);
+            return await PostAsync<DynamicDetectionAgentResult>("/dynamic_detection_agent", content)
+                .ConfigureAwait(false);
+        }
+
+        private static async Task AssertEndpointExists(string endpoint)
+        {
+            string openApiUrl = $"http://{Host}/openapi.json";
+            try
+            {
+                string openApi = await _httpClient.GetStringAsync(openApiUrl).ConfigureAwait(false);
+                if (openApi.Contains($"\"{endpoint}\"")) return;
+                throw new Exception(
+                    $"External service at {Host} does not expose {endpoint}. " +
+                    "Restart/deploy the updated SceneFlowService, or switch ExternalServiceSettings to a host that supports agent mode.");
+            }
+            catch (Exception e) when (!e.Message.Contains("does not expose"))
+            {
+                throw new Exception($"Unable to check external service endpoints at {openApiUrl}: {e.Message}", e);
+            }
+        }
+
         private static async Task<T> PostAsync<T>(string relativeUrl, HttpContent content)
         {
             if (relativeUrl.StartsWith("/"))
                 relativeUrl = relativeUrl.Substring(1);
-            var resp = await _httpClient.PostAsync(
-                $"http://{Host}/{relativeUrl}",
-                content
-            ).ConfigureAwait(false);
+            string url = $"http://{Host}/{relativeUrl}";
+            var resp = await _httpClient.PostAsync(url, content).ConfigureAwait(false);
+            var respContent = await resp.Content.ReadAsStringAsync();
 
             if (!resp.IsSuccessStatusCode)
             {
-                throw new Exception($"{resp.StatusCode} - {resp.ReasonPhrase}");
+                throw new Exception(
+                    $"{resp.StatusCode} - {resp.ReasonPhrase}; url={url}; response={respContent}");
             }
 
-            var respContent = await resp.Content.ReadAsStringAsync();
             T result;
             try
             {
@@ -151,7 +176,7 @@ namespace SceneFlowTools.Runtime
                 return Path.Combine(Application.dataPath, assetPath.Substring("Assets".Length + 1));
             }
 
-            throw new ArgumentException("Path must start with 'Assets'");
+            throw new ArgumentException("路径不是以Assets开头");
         }
     }
 }

@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Video;
+using SceneFlowTools.Runtime.DynamicDetection;
 
 namespace SceneFlowTools.Editor.Utils
 {
@@ -54,6 +57,29 @@ namespace SceneFlowTools.Editor.Utils
             List<String> fields = GetSerializeFields(type);
             return $"Unity Builtin Script: {type.FullName}\n"
                    + "Serialize Fields:" + string.Join(", ", fields);
+        }
+
+        public static DynamicDetectionContextScript GetDynamicDetectionContextScriptByType(Type type)
+        {
+            var script = GetMonoScriptByType(type);
+            string scriptPath = GetScriptPathOrNameByType(type);
+            string source = GetScriptSourceOrFieldsByType(type);
+            return new DynamicDetectionContextScript
+            {
+                scriptPath = scriptPath,
+                className = type.Name,
+                sourceHash = Sha1(source),
+                source = source,
+                fields = GetSerializeFields(type),
+                isBuiltin = script == null
+            };
+        }
+
+        private static string Sha1(string text)
+        {
+            using SHA1 sha1 = SHA1.Create();
+            byte[] bytes = sha1.ComputeHash(Encoding.UTF8.GetBytes(text));
+            return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
         }
 
         public static string GetScriptPathOrNameByType(Type type)

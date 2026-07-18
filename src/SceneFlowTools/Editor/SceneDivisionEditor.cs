@@ -14,7 +14,7 @@ namespace SceneFlowTools.Editor
     {
         public override void OnInspectorGUI()
         {
-            
+            // 保留原有字段显示
             // DrawDefaultInspector();
             serializedObject.Update();
             InspectorGUIGlobalDivision();
@@ -34,7 +34,7 @@ namespace SceneFlowTools.Editor
         {
             SceneDivision sd = (SceneDivision)target;
             using var _ = GUIUtils.Group("Global Division:");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(sd.globalDivisionParams)), true);
+            DrawGlobalDivisionParams(serializedObject.FindProperty(nameof(sd.globalDivisionParams)));
             sd.regenerateSceneInfo = EditorGUILayout.Toggle("Regenerate SceneInfo", sd.regenerateSceneInfo);
             GUIUtils.DataBakeClear(serializedObject.FindProperty(nameof(sd.globalDivisionResult)), GlobalDivisionBake,
                 GlobalDivisionClear);
@@ -43,6 +43,59 @@ namespace SceneFlowTools.Editor
             int maxIndex = sd.globalDivisionResult?.groups?.Count - 1 ?? -1;
             sd.showGlobalDivisionRegionIndex =
                 GUIUtils.IntPicker("Show Region", sd.showGlobalDivisionRegionIndex, -1, maxIndex, -1);
+        }
+
+        private static void DrawGlobalDivisionParams(SerializedProperty property)
+        {
+            SerializedProperty methodProperty = property.FindPropertyRelative(nameof(GlobalDivisionParams.method));
+            SerializedProperty extraProperty =
+                property.FindPropertyRelative(nameof(GlobalDivisionParams.dbscanExtraParams));
+
+            EditorGUILayout.PropertyField(methodProperty);
+            EditorGUILayout.PropertyField(extraProperty.FindPropertyRelative(nameof(DbscanExtraParams.downsampleStep)));
+
+            GlobalDivisionMethod method = (GlobalDivisionMethod)methodProperty.enumValueIndex;
+            if (IsDbscanMethod(method))
+            {
+                DrawDbscanParams(extraProperty);
+                return;
+            }
+
+            if (IsKMeansMethod(method))
+            {
+                EditorGUILayout.PropertyField(
+                    extraProperty.FindPropertyRelative(nameof(DbscanExtraParams.numClusters)));
+            }
+        }
+
+        private static void DrawDbscanParams(SerializedProperty extraProperty)
+        {
+            SerializedProperty autoCalibrationProperty =
+                extraProperty.FindPropertyRelative(nameof(DbscanExtraParams.autoCalibration));
+
+            EditorGUILayout.PropertyField(autoCalibrationProperty, new GUIContent("Auto DBSCAN Calibration"));
+            if (autoCalibrationProperty.boolValue)
+            {
+                EditorGUILayout.HelpBox(
+                    "SceneFlowService will select eps and minSamples with its default calibration strategy. Manual DBSCAN values are ignored while auto calibration is enabled.",
+                    MessageType.Info);
+            }
+
+            using (new EditorGUI.DisabledScope(autoCalibrationProperty.boolValue))
+            {
+                EditorGUILayout.PropertyField(extraProperty.FindPropertyRelative(nameof(DbscanExtraParams.eps)));
+                EditorGUILayout.PropertyField(extraProperty.FindPropertyRelative(nameof(DbscanExtraParams.minSamples)));
+            }
+        }
+
+        private static bool IsDbscanMethod(GlobalDivisionMethod method)
+        {
+            return method == GlobalDivisionMethod.Dbscan || method == GlobalDivisionMethod.VoxelDbscan;
+        }
+
+        private static bool IsKMeansMethod(GlobalDivisionMethod method)
+        {
+            return method == GlobalDivisionMethod.KMeans || method == GlobalDivisionMethod.VoxelKMeans;
         }
 
         private void GlobalDivisionBake()
@@ -77,7 +130,7 @@ namespace SceneFlowTools.Editor
             var rawResult = ExternalUtils.SceneDivisionWithContent(
                 content,
                 sd.globalDivisionParams.method.ToString(),
-                sd.globalDivisionParams.dbscanExtraParams
+                sd.globalDivisionParams.ToRequestExtra()
             ).Result;
             if (rawResult == null) return;
 

@@ -9,6 +9,8 @@ namespace SceneFlowTools.Runtime.DynamicDetection
     public class DynamicDetectionManager : MonoBehaviour
     {
         public DynamicDetectionData data;
+        public DynamicDetectionMode detectionMode = DynamicDetectionMode.DirectLLM;
+        public bool propagateDynamicToChildren = true;
         [NonSerialized] public bool gizmosDynamicObjects;
 
         [NonSerialized]
@@ -70,9 +72,18 @@ namespace SceneFlowTools.Runtime.DynamicDetection
             Dictionary<string, GameObject> allObjects = MetaInfo.CollectAllDict();
             Dictionary<string, ObjectDynamicType> detectedResults =
                 data.ObjectsDynamicInfo.ToDictionary(info => info.ObjectId, info => info.DynamicType);
-            Dictionary<string, ObjectDynamicType> truthResults = allObjects.Values
-                .Where(o => o.GetComponent<DynamicMarker>())
-                .ToDictionary(o => o.GetComponent<MetaInfo>().uid, o => o.GetComponent<DynamicMarker>().dynamicType);
+            var markers = DynamicMarker.CollectAllWithPropagation()
+                .Where(x => x.obj != null && x.obj.TryGetComponent(out MetaInfo metaInfo) &&
+                            !string.IsNullOrEmpty(metaInfo.uid))
+                .ToList();
+            Dictionary<string, ObjectDynamicType> truthResults = markers
+                .ToDictionary(x => x.obj.GetComponent<MetaInfo>().uid, x => x.type);
+            if (propagateDynamicToChildren)
+            {
+                detectedResults = PropagateDynamicTypes(detectedResults, allObjects);
+                truthResults = PropagateMarkerDynamicTypes(markers);
+            }
+
             cachedGizmosDynamic = new List<GameObject>();
             cachedGizmosInteractive = new List<GameObject>();
             cachedGizmosWrong = new List<GameObject>();
@@ -105,6 +116,52 @@ namespace SceneFlowTools.Runtime.DynamicDetection
                 else if (detected == ObjectDynamicType.Dynamic)
                     cachedGizmosDynamic.Add(allObjects[obj]);
             }
+        }
+
+        private static Dictionary<string, ObjectDynamicType> PropagateDynamicTypes(
+            Dictionary<string, ObjectDynamicType> source,
+            Dictionary<string, GameObject> allObjects)
+        {
+            Dictionary<string, ObjectDynamicType> propagated = new(source);
+            foreach (var kv in source)
+            {
+                if (!kv.Value.IsDynamic()) continue;
+                if (!allObjects.TryGetValue(kv.Key, out GameObject obj) || obj == null) continue;
+                foreach (MetaInfo childMeta in obj.GetComponentsInChildren<MetaInfo>())
+                {
+                    if (childMeta == null || string.IsNullOrEmpty(childMeta.uid)) continue;
+                    ObjectDynamicType current = propagated.GetValueOrDefault(childMeta.uid, ObjectDynamicType.Static);
+                    if (current < kv.Value)
+                    {
+                        propagated[childMeta.uid] = kv.Value;
+                    }
+                }
+            }
+
+            return propagated;
+        }
+
+        private static Dictionary<string, ObjectDynamicType> PropagateMarkerDynamicTypes(
+            List<(GameObject obj, ObjectDynamicType type, ObjectDynamicType propagationType)> markers)
+        {
+            Dictionary<string, ObjectDynamicType> propagated = markers
+                .ToDictionary(x => x.obj.GetComponent<MetaInfo>().uid, x => x.type);
+            foreach (var marker in markers)
+            {
+                if (!marker.propagationType.IsDynamic()) continue;
+                foreach (MetaInfo childMeta in marker.obj.GetComponentsInChildren<MetaInfo>())
+                {
+                    if (childMeta == null || string.IsNullOrEmpty(childMeta.uid)) continue;
+                    if (childMeta.gameObject == marker.obj) continue;
+                    ObjectDynamicType current = propagated.GetValueOrDefault(childMeta.uid, ObjectDynamicType.Static);
+                    if (current < marker.propagationType)
+                    {
+                        propagated[childMeta.uid] = marker.propagationType;
+                    }
+                }
+            }
+
+            return propagated;
         }
     }
 }
