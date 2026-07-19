@@ -17,7 +17,7 @@ namespace SceneFlowTools.Runtime
             }
             if (result.Length > 1)
             {
-                result.Length -= 2; // 去掉最后的逗号和空格
+                result.Length -= 2; // Remove the trailing comma and space.
             }
             result.Append("}");
             return result.ToString();

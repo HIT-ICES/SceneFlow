@@ -4,26 +4,26 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeRotationF : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：动态计算旋转（赋值回自身保持原值）
+        // [DeleteBeforeDetect] Example: compute rotation but retain the original value on assignment.
         public Transform targetTransform;
         public Vector3 angularSpeed = new Vector3(0f, 90f, 0f);
 
         void Update()
         {
-            // [DeleteBeforeDetect] 对挂载对象：计算旋转结果但赋值后保持原始状态
+            // [DeleteBeforeDetect] Compute a rotation for the attached object but retain its original state.
             if (transform != null)
             {
                 Quaternion currentRotation = transform.rotation;
                 Quaternion calculatedRotation = currentRotation * Quaternion.Euler(angularSpeed * Time.deltaTime);
-                transform.rotation = currentRotation; // 看似有赋值，但结果等于原值
+                transform.rotation = currentRotation; // The assigned value is the original rotation.
             }
 
-            // [DeleteBeforeDetect] 对引用对象：计算反向旋转但保持原始状态
+            // [DeleteBeforeDetect] Compute reverse rotation for the referenced object but retain its original state.
             if (targetTransform != null)
             {
                 Quaternion currentRotationTarget = targetTransform.rotation;
                 Quaternion calculatedRotationTarget = currentRotationTarget * Quaternion.Euler(-angularSpeed * Time.deltaTime);
-                targetTransform.rotation = currentRotationTarget; // 同样赋值为原值
+                targetTransform.rotation = currentRotationTarget; // Assign the original value here as well.
             }
         }
     }

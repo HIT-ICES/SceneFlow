@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleMaterialPropertyBlock : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：使用MaterialPropertyBlock为单个Renderer设置属性（不复制材质）
+        // [DeleteBeforeDetect] Example: set per-Renderer properties with MaterialPropertyBlock without copying materials.
         public Renderer targetRenderer;
         public Color colorA = Color.cyan;
         public Color colorB = Color.magenta;
@@ -17,7 +17,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取Renderer并初始化MPB
+            // [DeleteBeforeDetect] Get Renderers and initialize MaterialPropertyBlocks.
             selfRenderer = GetComponent<Renderer>();
             selfBlock = new MaterialPropertyBlock();
             targetBlock = new MaterialPropertyBlock();
@@ -25,11 +25,11 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 计算动态颜色
+            // [DeleteBeforeDetect] Compute the animated color.
             float t = (Mathf.Sin(Time.time * speed) + 1f) * 0.5f;
             Color c = Color.Lerp(colorA, colorB, t);
 
-            // [DeleteBeforeDetect] 对挂载对象应用MPB颜色
+            // [DeleteBeforeDetect] Apply the MaterialPropertyBlock color to the attached object.
             if (selfRenderer != null)
             {
                 selfRenderer.GetPropertyBlock(selfBlock);
@@ -37,7 +37,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
                 selfRenderer.SetPropertyBlock(selfBlock);
             }
 
-            // [DeleteBeforeDetect] 对引用对象应用MPB颜色（若存在）
+            // [DeleteBeforeDetect] Apply the MaterialPropertyBlock color to the referenced object, if present.
             if (targetRenderer != null)
             {
                 targetRenderer.GetPropertyBlock(targetBlock);

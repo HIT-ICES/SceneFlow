@@ -6,7 +6,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeScaleI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：玩家按XR右手手柄A键时触发脉冲式缩放
+        // [DeleteBeforeDetect] Example: pulse the scale when the player presses A on the right XR controller.
         public Transform targetTransform;
         public float pulseAmount = 0.25f;
         public float pulseSpeed = 2f;
@@ -19,19 +19,19 @@ namespace SceneFlowTools.Runtime.DynamicSample
         private XRGrabInteractable selfGrabInteractable;
         private XRGrabInteractable targetGrabInteractable;
 
-        // [DeleteBeforeDetect] XR右手设备引用
+        // [DeleteBeforeDetect] Reference to the right-hand XR device.
         public InputDevice rightHand;
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 记录挂载对象初始缩放
+            // [DeleteBeforeDetect] Record the attached object's initial scale.
             originalSelfScale = transform.localScale;
             if (targetTransform != null)
             {
                 originalTargetScale = targetTransform.localScale;
             }
 
-            // [DeleteBeforeDetect] self 监听抓取事件
+            // [DeleteBeforeDetect] Subscribe to grab events on self.
             selfGrabInteractable = GetComponent<XRGrabInteractable>();
             if (selfGrabInteractable == null)
             {
@@ -40,7 +40,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
             selfGrabInteractable.selectEntered.AddListener(OnSelfGrabStarted);
             selfGrabInteractable.selectExited.AddListener(OnSelfGrabEnded);
 
-            // [DeleteBeforeDetect] target 监听抓取事件
+            // [DeleteBeforeDetect] Subscribe to grab events on target.
             if (targetTransform != null)
             {
                 targetGrabInteractable = targetTransform.GetComponent<XRGrabInteractable>();
@@ -59,14 +59,14 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 没有抓取前置时，不允许触发缩放
+            // [DeleteBeforeDetect] Do not scale unless a grab is active.
             if (!isSelfGrabbed && !isTargetGrabbed)
             {
                 isScaling = false;
                 return;
             }
 
-            // [DeleteBeforeDetect] 检查XR右手A键是否按下（primaryButton）
+            // [DeleteBeforeDetect] Check the right XR controller's A button (primaryButton).
             EnsureRightHandDevice();
             bool aPressed = false;
             if (rightHand.isValid)
@@ -84,7 +84,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
                 ResetScales();
             }
 
-            // [DeleteBeforeDetect] 只有在玩家触发时才执行脉冲缩放逻辑
+            // [DeleteBeforeDetect] Apply pulse scaling only after player input.
             if (isScaling)
             {
                 float factor = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseAmount;
@@ -93,7 +93,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
                     transform.localScale = originalSelfScale * factor;
                 }
 
-                // [DeleteBeforeDetect] 对引用对象：如果存在，做相位相反的缩放
+                // [DeleteBeforeDetect] Scale the referenced object in the opposite phase, if present.
                 if (isTargetGrabbed && targetTransform != null)
                 {
                     float factor2 = 1f + Mathf.Sin(Time.time * pulseSpeed + Mathf.PI) * pulseAmount;

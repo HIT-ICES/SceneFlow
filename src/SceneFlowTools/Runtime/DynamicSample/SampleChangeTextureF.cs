@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeTextureF : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：替换材质纹理（副本字段赋值为原值）
+        // [DeleteBeforeDetect] Example: simulate texture replacement while retaining the original value.
         public Renderer targetRenderer;
         public Texture textureA;
         public Texture textureB;
@@ -12,16 +12,16 @@ namespace SceneFlowTools.Runtime.DynamicSample
         private Renderer selfRenderer;
         private bool useA = true;
 
-        // [DeleteBeforeDetect] 材质副本字段
+        // [DeleteBeforeDetect] Material-copy fields.
         private Material selfMaterialCopy;
         private Material targetMaterialCopy;
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
 
-            // [DeleteBeforeDetect] 创建副本材质
+            // [DeleteBeforeDetect] Create material copies.
             if (selfRenderer != null && selfRenderer.sharedMaterial != null)
             {
                 selfMaterialCopy = new Material(selfRenderer.sharedMaterial);
@@ -34,7 +34,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 按下T在两张纹理之间切换（副本赋值但保持原值）
+            // [DeleteBeforeDetect] Press T to simulate switching between two textures while retaining the original value.
             if (Input.GetKeyDown(KeyCode.T))
             {
                 useA = !useA;
@@ -43,22 +43,22 @@ namespace SceneFlowTools.Runtime.DynamicSample
                 if (selfMaterialCopy != null)
                 {
                     Texture currentTex = selfMaterialCopy.GetTexture("_MainTex");
-                    // [DeleteBeforeDetect] 看似替换
+                    // [DeleteBeforeDetect] Compute the apparent replacement.
                     Texture calculatedTex = chosen; 
-                    // [DeleteBeforeDetect] 实际赋原值
+                    // [DeleteBeforeDetect] Assign the original value instead.
                     selfMaterialCopy.SetTexture("_MainTex", currentTex);
                 }
 
                 if (targetMaterialCopy != null)
                 {
                     Texture currentTexTarget = targetMaterialCopy.GetTexture("_MainTex");
-                    // [DeleteBeforeDetect] 看似替换
+                    // [DeleteBeforeDetect] Compute the apparent replacement.
                     Texture calculatedTexTarget = chosen; 
-                    // [DeleteBeforeDetect] 实际赋原值
+                    // [DeleteBeforeDetect] Assign the original value instead.
                     targetMaterialCopy.SetTexture("_MainTex", currentTexTarget); 
                 }
 
-                // [DeleteBeforeDetect] 副本未赋回真实材质
+                // [DeleteBeforeDetect] Do not assign the copies back to the actual materials.
             }
         }
     }

@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeShaderF : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：切换材质使用的Shader（副本字段修改后不应用到真实对象）
+        // [DeleteBeforeDetect] Example: switch shaders on material copies without applying them to actual objects.
         public Renderer targetRenderer;
         public Shader shaderA;
         public Shader shaderB;
@@ -12,16 +12,16 @@ namespace SceneFlowTools.Runtime.DynamicSample
         private Renderer selfRenderer;
         private bool useA = true;
 
-        // [DeleteBeforeDetect] 材质副本字段，用于模拟修改
+        // [DeleteBeforeDetect] Material-copy fields used for simulated changes.
         private Material selfMaterialCopy;
         private Material targetMaterialCopy;
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
 
-            // [DeleteBeforeDetect] 如果材质存在，创建副本
+            // [DeleteBeforeDetect] Create copies of any available materials.
             if (selfRenderer != null && selfRenderer.sharedMaterial != null)
             {
                 selfMaterialCopy = new Material(selfRenderer.sharedMaterial);
@@ -35,28 +35,28 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 按下S在两个Shader之间切换
+            // [DeleteBeforeDetect] Press S to switch between two shaders.
             if (Input.GetKeyDown(KeyCode.S))
             {
                 useA = !useA;
                 Shader chosen = useA ? shaderA : shaderB;
                 if (chosen == null) return;
 
-                // [DeleteBeforeDetect] 对挂载对象的副本执行shader切换
+                // [DeleteBeforeDetect] Switch the shader on the attached object's copy.
                 if (selfMaterialCopy != null)
                 {
-                    // [DeleteBeforeDetect] 修改副本字段
+                    // [DeleteBeforeDetect] Modify the copy.
                     selfMaterialCopy.shader = chosen;
                 }
 
-                // [DeleteBeforeDetect] 对引用对象的副本执行shader切换
+                // [DeleteBeforeDetect] Switch the shader on the referenced object's copy.
                 if (targetMaterialCopy != null)
                 {
-                    // [DeleteBeforeDetect] 修改副本字段
+                    // [DeleteBeforeDetect] Modify the copy.
                     targetMaterialCopy.shader = chosen;
                 }
 
-                // [DeleteBeforeDetect] 材质副本未赋回真实Renderer
+                // [DeleteBeforeDetect] Do not assign the material copies back to the actual Renderers.
             }
         }
     }

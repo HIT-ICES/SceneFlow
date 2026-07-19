@@ -5,7 +5,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeMaterialI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：投掷事件触发后切换材质
+        // [DeleteBeforeDetect] Example: switch materials after a throw event.
         public Renderer targetRenderer;
         public Material alternateMaterial;
 
@@ -13,26 +13,26 @@ namespace SceneFlowTools.Runtime.DynamicSample
         private Material originalSelfMaterial;
         private Material originalTargetMaterial;
 
-        // [DeleteBeforeDetect] 用于标记是否是玩家抓取的物体
+        // [DeleteBeforeDetect] Tracks whether the object is currently grabbed by the player.
         private XRGrabInteractable grabInteractable;
         private XRGrabInteractable grabInteractableTarget;
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取本体Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
             if (selfRenderer != null)
             {
                 originalSelfMaterial = selfRenderer.material;
             }
 
-            // [DeleteBeforeDetect] 记录目标对象原材质
+            // [DeleteBeforeDetect] Record the target object's original material.
             if (targetRenderer != null)
             {
                 originalTargetMaterial = targetRenderer.material;
             }
 
-            // [DeleteBeforeDetect] 获取XRGrabInteractable组件，用于侦听玩家交互
+            // [DeleteBeforeDetect] Get XRGrabInteractable components to observe player interactions.
             grabInteractable = GetComponent<XRGrabInteractable>();
             if (grabInteractable == null)
             {
@@ -45,20 +45,20 @@ namespace SceneFlowTools.Runtime.DynamicSample
                 grabInteractableTarget = targetRenderer.gameObject.AddComponent<XRGrabInteractable>();
             }
 
-            // [DeleteBeforeDetect] 订阅SelectExited事件（玩家松手投掷时触发）
+            // [DeleteBeforeDetect] Subscribe to SelectExited, which fires when the player releases a throw.
             grabInteractable.selectExited.AddListener(OnPlayerThrow);
             
-            // [DeleteBeforeDetect] 订阅SelectExited事件（玩家松手投掷时触发）
+            // [DeleteBeforeDetect] Subscribe to SelectExited, which fires when the player releases a throw.
             grabInteractableTarget.selectExited.AddListener(OnPlayerThrowTarget);
         }
 
-        // [DeleteBeforeDetect] 投掷（SelectExited）时触发函数
+        // [DeleteBeforeDetect] Handle the throw (SelectExited) event.
         private void OnPlayerThrow(SelectExitEventArgs args)
         {
-            // [DeleteBeforeDetect] 确保投掷事件由玩家交互触发
+            // [DeleteBeforeDetect] Ensure that player interaction triggered the throw event.
             if (args.interactorObject is XRBaseControllerInteractor)
             {
-                // [DeleteBeforeDetect] 切换自身材质
+                // [DeleteBeforeDetect] Switch this object's material.
                 if (selfRenderer != null && alternateMaterial != null)
                 {
                     selfRenderer.material = selfRenderer.material.name == alternateMaterial.name
@@ -70,10 +70,10 @@ namespace SceneFlowTools.Runtime.DynamicSample
         
         private void OnPlayerThrowTarget(SelectExitEventArgs args)
         {
-            // [DeleteBeforeDetect] 确保投掷事件由玩家交互触发
+            // [DeleteBeforeDetect] Ensure that player interaction triggered the throw event.
             if (args.interactorObject is XRBaseControllerInteractor)
             {
-                // [DeleteBeforeDetect] 切换目标对象材质
+                // [DeleteBeforeDetect] Switch the target object's material.
                 if (targetRenderer != null && alternateMaterial != null)
                 {
                     targetRenderer.material = targetRenderer.material.name == alternateMaterial.name
@@ -85,7 +85,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void OnDestroy()
         {
-            // [DeleteBeforeDetect] 确保事件解除绑定，防止内存泄漏
+            // [DeleteBeforeDetect] Unsubscribe from events to prevent retained references.
             if (grabInteractable != null)
             {
                 grabInteractable.selectExited.RemoveListener(OnPlayerThrow);

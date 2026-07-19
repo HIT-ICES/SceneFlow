@@ -47,7 +47,7 @@ namespace SceneFlowTools.Runtime
         public List<MeshFilter> CollectMeshes()
         {
             List<MeshFilter> meshFilters = new List<MeshFilter>();
-            // 获取场景中的所有MeshFilter组件
+            // Find all MeshFilter components in the scene.
             foreach (var meshFilter in FindObjectsOfType<MeshFilter>())
             {
                 if (meshFilter.gameObject.activeInHierarchy && meshFilter.sharedMesh != null)

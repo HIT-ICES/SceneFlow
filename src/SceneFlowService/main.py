@@ -1,7 +1,7 @@
 import hashlib
 import os
 from typing import Union
-import time  # 添加计时
+import time  # Used for timing.
 
 import numpy as np
 from fastapi.encoders import jsonable_encoder
@@ -17,7 +17,7 @@ from middleware.request_gc import GCMiddleware
 from middleware.request_gzip import GZipRequestMiddleware, DecompressRequestMiddleware
 from utils import dataset
 
-# 日志引入（新增）
+# Configure logging.
 import logging_config  # noqa: F401
 from loguru import logger
 
@@ -163,7 +163,7 @@ async def dynamic_detection(params: DynamicDetectionParams):
     logger.info("start script={}", params.script_name)
     start_time = time.monotonic()
     retry_count = 3
-    result = None  # 初始化
+    result = None  # Initialize the result.
     while retry_count > 0:
         try:
             retry_count -= 1
@@ -210,7 +210,7 @@ async def dynamic_detection_agent(params: DynamicDetectionAgentParams):
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
     logger.error(f"Unhandled exception: {'\n'.join(traceback.format_exception(exc))}")
-    # 获取完整的异常堆栈信息
+    # Capture the complete exception stack trace.
     tb_str = ''.join(traceback.format_exception(exc))
     return JSONResponse(
         status_code=500,
@@ -218,6 +218,6 @@ async def global_exception_handler(request: Request, exc: Exception):
             "error": str(exc),
             "type": type(exc).__name__,
             "args": exc.args,
-            "traceback": tb_str,  # 打印堆栈信息（开发调试用，生产环境慎用）
+            "traceback": tb_str,  # Development diagnostics only; omit stack traces from production responses.
         }
     )

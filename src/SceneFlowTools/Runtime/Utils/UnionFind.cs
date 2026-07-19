@@ -9,7 +9,7 @@ namespace SceneFlowTools.Runtime
         private readonly Dictionary<T, int> rank = new();
 
         /// <summary>
-        /// 添加一个新的元素到并查集，初始时它自己是一个集合。
+        /// Add a new element as a singleton set.
         /// </summary>
         public void Add(T item)
         {
@@ -21,7 +21,7 @@ namespace SceneFlowTools.Runtime
         }
 
         /// <summary>
-        /// 查找元素的代表（根），带路径压缩。
+        /// Find an element's representative (root) with path compression.
         /// </summary>
         public T Find(T item)
         {
@@ -36,7 +36,7 @@ namespace SceneFlowTools.Runtime
         }
 
         /// <summary>
-        /// 合并两个元素所在的集合。
+        /// Merge the sets containing two elements.
         /// </summary>
         public void Union(T a, T b)
         {
@@ -66,7 +66,7 @@ namespace SceneFlowTools.Runtime
         }
 
         /// <summary>
-        /// 判断两个元素是否在同一集合中。
+        /// Determine whether two elements belong to the same set.
         /// </summary>
         public bool Connected(T a, T b)
         {

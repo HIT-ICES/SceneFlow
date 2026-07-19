@@ -11,11 +11,11 @@ namespace SceneFlowTools.Editor
     {
         public override void OnInspectorGUI()
         {
-            // 保留原有字段显示
+            // Draw the default inspector fields.
             DrawDefaultInspector();
-            // 获取目标对象
+            // Get the target object.
             VoxelizeFindRoom myComponent = (VoxelizeFindRoom)target;
-            // 添加按钮
+            // Add the action button.
             if (GUILayout.Button("Bake"))
             {
                 List<MeshFilter> meshFilters = myComponent.CollectMeshes();

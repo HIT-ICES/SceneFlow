@@ -49,11 +49,11 @@ def pre_process(method_name, data_v, data_id, *, reduce_dim=True, trace_figure=F
     if trace_figure:
         cluster_utils.save_figure_data(f"Raw Data", data_v, np.zeros(len(data_v), dtype=int))
     data_v = data_v.copy()
-    # # 预处理：将每个模型的点集向其中心拉近
+    # # Preprocess each model by moving its points toward the center.
     # for obj_id in np.unique(data_id):
     #     points = data_v[data_id == obj_id]
     #     center = points.mean(axis=0)
-    #     # 用一个指向重心的向量拉近0.5
+    #     # Move each point 0.5 units along a vector toward the centroid.
     #     data_v[data_id == obj_id] = points + (center - points) * 0.5
     return data_v if not reduce_dim else reduce_dimension(data_v)
 
@@ -248,7 +248,7 @@ def birch_auto(data_v, data_id, *, reduce_dim=True, threshold=0.5, branching_fac
     sub_labels = dbscan.fit_predict(subcluster_centers)
     labels = sub_labels[birch_cluster.labels_]
 
-    # # Step 2: 在子簇中心上寻找最佳 K 值
+    # # Step 2: Find the optimal K value using the subcluster centers.
     # best_k = 2
     # max_score = -1
     # for k in range(2, 11):

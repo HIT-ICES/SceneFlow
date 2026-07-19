@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeMaterial : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：切换材质以改变渲染结果
+        // [DeleteBeforeDetect] Example: switch materials to change the rendered result.
         public Renderer targetRenderer;
         public Material alternateMaterial;
 
@@ -14,14 +14,14 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象的Renderer和原材质
+            // [DeleteBeforeDetect] Get the attached object's Renderer and original material.
             selfRenderer = GetComponent<Renderer>();
             if (selfRenderer != null)
             {
                 originalSelfMaterial = selfRenderer.material;
             }
 
-            // [DeleteBeforeDetect] 记录目标对象原材质
+            // [DeleteBeforeDetect] Record the target object's original material.
             if (targetRenderer != null)
             {
                 originalTargetMaterial = targetRenderer.material;

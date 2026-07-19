@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeColor : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：修改材质主颜色（含透明度）
+        // [DeleteBeforeDetect] Example: change a material's main color, including alpha.
         public Renderer targetRenderer;
         public Color colorA = Color.white;
         public Color colorB = Color.red;
@@ -14,23 +14,23 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
         }
 
         void Update()
         {
-            // [DeleteBeforeDetect] 在两种颜色之间插值
+            // [DeleteBeforeDetect] Interpolate between two colors.
             float t = (Mathf.Sin(Time.time * lerpSpeed) + 1f) * 0.5f;
             Color c = Color.Lerp(colorA, colorB, t);
 
-            // [DeleteBeforeDetect] 对挂载对象应用颜色
+            // [DeleteBeforeDetect] Apply the color to the attached object.
             if (selfRenderer != null && selfRenderer.material != null)
             {
                 selfRenderer.material.color = c;
             }
 
-            // [DeleteBeforeDetect] 对引用对象应用颜色（若存在）
+            // [DeleteBeforeDetect] Apply the color to the referenced object, if present.
             if (targetRenderer != null && targetRenderer.material != null)
             {
                 targetRenderer.material.color = c;

@@ -4,15 +4,15 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangePositionI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：动态改变位置（平滑往返移动），仅在玩家触碰时触发
+        // [DeleteBeforeDetect] Example: move smoothly back and forth while touched by the player.
         public Transform targetTransform;
 
-        // [DeleteBeforeDetect] 移动参数
+        // [DeleteBeforeDetect] Movement parameters.
         public float amplitude = 1f;
         public float speed = 1f;
         public Vector3 direction = Vector3.right;
 
-        // [DeleteBeforeDetect] 用于判断 self/target 是否由玩家触发
+        // [DeleteBeforeDetect] Track whether player contact triggered self or target.
         private bool isSelfPlayerTouching;
         private bool isTargetPlayerTouching;
         private SampleChangePositionITargetTriggerRelay targetTriggerRelay;
@@ -33,30 +33,30 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 只有在玩家正在触碰 self 时才执行 self 位置变化
+            // [DeleteBeforeDetect] Move self only while the player is touching it.
             if (isSelfPlayerTouching)
             {
-                // [DeleteBeforeDetect] 对挂载对象：基于正弦波移动
+                // [DeleteBeforeDetect] Move the attached object along a sine wave.
                 transform.position += direction * Mathf.Sin(Time.time * speed) * amplitude * Time.deltaTime;
             }
 
-            // [DeleteBeforeDetect] 只有在玩家正在触碰 target 时才执行 target 位置变化
+            // [DeleteBeforeDetect] Move target only while the player is touching it.
             if (isTargetPlayerTouching && targetTransform != null)
             {
                 targetTransform.position += -direction * Mathf.Sin(Time.time * speed) * amplitude * Time.deltaTime;
             }
         }
 
-        // [DeleteBeforeDetect] 当检测到玩家进入触碰范围时触发
+        // [DeleteBeforeDetect] Trigger when the player enters the contact area.
         private void OnTriggerEnter(Collider other)
         {
-            if (other.CompareTag("Player")) // 确保是玩家
+            if (other.CompareTag("Player")) // Accept only the player.
             {
                 isSelfPlayerTouching = true;
             }
         }
 
-        // [DeleteBeforeDetect] 当玩家离开触碰范围时停止移动
+        // [DeleteBeforeDetect] Stop moving when the player leaves the contact area.
         private void OnTriggerExit(Collider other)
         {
             if (other.CompareTag("Player"))

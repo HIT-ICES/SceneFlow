@@ -1,5 +1,5 @@
 """
-包围盒，以及用于处理包围盒相关的工具
+Bounds representation and related utilities.
 """
 from typing import List
 
@@ -30,7 +30,7 @@ class Bounds:
     @staticmethod
     def from_vertices(vertices):
         """
-        从顶点列表或ndarray创建Bounds对象
+        Create a Bounds instance from a vertex list or ndarray.
         """
         vertices = np.asarray(vertices)
         if vertices.ndim != 2 or vertices.shape[1] != 3:
@@ -46,14 +46,14 @@ class Bounds:
     @staticmethod
     def intersect(bounds1: "Bounds", bounds2: "Bounds", *, axis: None | List[int] = None):
         """
-        检查两个AABB包围盒是否相交
+        Determine whether two axis-aligned bounding boxes intersect.
         """
         return np.all(bounds1.min(axis) <= bounds2.max(axis)) and np.all(bounds1.max(axis) >= bounds2.min(axis))
 
     @staticmethod
     def contains(bounds1: "Bounds", bounds2: "Bounds", *, axis: None | List[int] = None):
         """
-        检查AABB1是否完全包含AABB2
+        Determine whether AABB1 fully contains AABB2.
         """
         return np.all(bounds1.min(axis) <= bounds2.min(axis)) and np.all(bounds1.max(axis) >= bounds2.max(axis))
 

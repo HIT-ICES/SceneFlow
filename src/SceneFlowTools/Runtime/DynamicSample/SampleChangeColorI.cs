@@ -5,7 +5,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeColorI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：修改材质主颜色（含透明度）
+        // [DeleteBeforeDetect] Example: change a material's main color, including alpha.
         public Renderer targetRenderer;
         public Color colorA = Color.white;
         public Color colorB = Color.red;
@@ -21,10 +21,10 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
 
-            // [DeleteBeforeDetect] self 监听抓取事件
+            // [DeleteBeforeDetect] Subscribe to grab events on self.
             selfGrabInteractable = GetComponent<XRGrabInteractable>();
             if (selfGrabInteractable == null)
             {
@@ -34,7 +34,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
             selfGrabInteractable.selectEntered.AddListener(OnGrabSelf);
             selfGrabInteractable.selectExited.AddListener(OnReleaseSelf);
 
-            // [DeleteBeforeDetect] target 监听抓取事件
+            // [DeleteBeforeDetect] Subscribe to grab events on target.
             if (targetRenderer != null)
             {
                 targetGrabInteractable = targetRenderer.GetComponent<XRGrabInteractable>();
@@ -51,27 +51,27 @@ namespace SceneFlowTools.Runtime.DynamicSample
             }
         }
 
-        // [DeleteBeforeDetect] self 抓取事件回调
+        // [DeleteBeforeDetect] Handle self being grabbed.
         private void OnGrabSelf(SelectEnterEventArgs args)
         {
             isSelfGrabbed = true;
             selfStartTime = Time.time;
         }
 
-        // [DeleteBeforeDetect] self 放开事件回调
+        // [DeleteBeforeDetect] Handle self being released.
         private void OnReleaseSelf(SelectExitEventArgs args)
         {
             isSelfGrabbed = false;
         }
 
-        // [DeleteBeforeDetect] target 抓取事件回调
+        // [DeleteBeforeDetect] Handle target being grabbed.
         private void OnGrabTarget(SelectEnterEventArgs args)
         {
             isTargetGrabbed = true;
             targetStartTime = Time.time;
         }
 
-        // [DeleteBeforeDetect] target 放开事件回调
+        // [DeleteBeforeDetect] Handle target being released.
         private void OnReleaseTarget(SelectExitEventArgs args)
         {
             isTargetGrabbed = false;
@@ -79,7 +79,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 仅在 self 抓取时对 self 执行颜色插值
+            // [DeleteBeforeDetect] Interpolate self's color only while self is grabbed.
             if (isSelfGrabbed)
             {
                 float selfT = (Mathf.Sin((Time.time - selfStartTime) * lerpSpeed) + 1f) * 0.5f;
@@ -90,7 +90,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
                 }
             }
 
-            // [DeleteBeforeDetect] 仅在 target 抓取时对 target 执行颜色插值
+            // [DeleteBeforeDetect] Interpolate target's color only while target is grabbed.
             if (isTargetGrabbed)
             {
                 float targetT = (Mathf.Sin((Time.time - targetStartTime) * lerpSpeed) + 1f) * 0.5f;

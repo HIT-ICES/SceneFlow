@@ -424,9 +424,10 @@ namespace SceneFlowTools.Editor.DynamicDetection
             }
             // if (fieldValue == null)
             // {
-            //     // Unity 的 VideoPlayer.targetMaterialRenderer 官方行为是：当它为 null 且 renderMode = MaterialOverride 时，会使用当前 GameObject 上的第一个 Renderer。
-            //     // Unity 文档也明确写了这一点：https://docs.unity3d.com/ScriptReference/Video.VideoPlayer-targetMaterialRenderer.html
-            //     // 但是这涉嫌实验的特殊处理，先注释
+            //     // When VideoPlayer.targetMaterialRenderer is null and renderMode is MaterialOverride,
+            //     // Unity uses the first Renderer on the current GameObject, as documented here:
+            //     // https://docs.unity3d.com/ScriptReference/Video.VideoPlayer-targetMaterialRenderer.html
+            //     // Keep this disabled to avoid experiment-specific behavior.
             //     // GameObject fallbackObj = GetBuiltinFieldFallbackGameObject(comp, fieldName);
             //     // if (fallbackObj != null)
             //     // {

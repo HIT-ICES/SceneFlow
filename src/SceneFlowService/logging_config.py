@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 from loguru import logger
 
-# 单例式初始化标记
+# Singleton-style initialization flag.
 _INITIALIZED = False
 
 class InterceptHandler(logging.Handler):
@@ -28,13 +28,13 @@ def setup_logging():
         return logger
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
-    # 重置默认配置
+    # Reset the default configuration.
     logger.remove()
-    # 控制台输出
+    # Console output.
     logger.add(sys.stdout,
                level="INFO",
                format="[{time:YYYY-MM-DD HH:mm:ss.SSS}][{level}][{name}:{function}:{line}] {message}")
-    # 文件日志（更详细，含线程进程）
+    # Detailed file logs, including thread and process information.
     logger.add(log_dir / "app-{time:YYYY-MM-DD}.log",
                rotation="20 MB",
                retention="10 days",
@@ -57,6 +57,6 @@ def setup_logging():
     _INITIALIZED = True
     return logger
 
-# 模块导入即初始化，方便直接使用
+# Initialize on module import for direct use.
 setup_logging()
 

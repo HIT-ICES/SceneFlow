@@ -5,7 +5,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleMaterialPropertyBlockI : MonoBehaviour
 {
-    // [DeleteBeforeDetect] 示例：使用MaterialPropertyBlock为单个Renderer设置属性（不复制材质）
+    // [DeleteBeforeDetect] Example: set per-Renderer properties with MaterialPropertyBlock without copying materials.
     public Renderer targetRenderer;
     public Color colorA = Color.cyan;
     public Color colorB = Color.magenta;
@@ -22,12 +22,12 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
     void Awake()
     {
-        // [DeleteBeforeDetect] 获取Renderer并初始化MPB
+        // [DeleteBeforeDetect] Get Renderers and initialize MaterialPropertyBlocks.
         selfRenderer = GetComponent<Renderer>();
         selfBlock = new MaterialPropertyBlock();
         targetBlock = new MaterialPropertyBlock();
 
-        // [DeleteBeforeDetect] self 绑定抓取事件
+        // [DeleteBeforeDetect] Subscribe to grab events on self.
         selfGrabInteractable = GetComponent<XRGrabInteractable>();
         if (selfGrabInteractable == null)
         {
@@ -37,7 +37,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
         selfGrabInteractable.selectEntered.AddListener(OnGrabSelf);
         selfGrabInteractable.selectExited.AddListener(OnReleaseSelf);
 
-        // [DeleteBeforeDetect] target 绑定抓取事件
+        // [DeleteBeforeDetect] Subscribe to grab events on target.
         if (targetRenderer != null)
         {
             targetGrabInteractable = targetRenderer.GetComponent<XRGrabInteractable>();
@@ -54,27 +54,27 @@ namespace SceneFlowTools.Runtime.DynamicSample
         }
     }
 
-    // [DeleteBeforeDetect] 玩家抓取 self 时触发颜色变化
+    // [DeleteBeforeDetect] Start changing self's color when the player grabs it.
     private void OnGrabSelf(SelectEnterEventArgs args)
     {
         selfGrabbed = true;
         ApplyColorToSelf(GetAnimatedColor());
     }
 
-    // [DeleteBeforeDetect] 玩家松开 self 后停止标记
+    // [DeleteBeforeDetect] Stop marking self when the player releases it.
     private void OnReleaseSelf(SelectExitEventArgs args)
     {
         selfGrabbed = false;
     }
 
-    // [DeleteBeforeDetect] 玩家抓取 target 时触发颜色变化
+    // [DeleteBeforeDetect] Start changing target's color when the player grabs it.
     private void OnGrabTarget(SelectEnterEventArgs args)
     {
         targetGrabbed = true;
         ApplyColorToTarget(GetAnimatedColor());
     }
 
-    // [DeleteBeforeDetect] 玩家松开 target 后停止标记
+    // [DeleteBeforeDetect] Stop marking target when the player releases it.
     private void OnReleaseTarget(SelectExitEventArgs args)
     {
         targetGrabbed = false;
@@ -105,10 +105,10 @@ namespace SceneFlowTools.Runtime.DynamicSample
         }
     }
 
-    // [DeleteBeforeDetect] 对挂载对象应用MPB颜色
+    // [DeleteBeforeDetect] Apply the MaterialPropertyBlock color to the attached object.
     private void ApplyColorToSelf(Color c)
     {
-        // [DeleteBeforeDetect] 对挂载对象应用MPB颜色
+        // [DeleteBeforeDetect] Apply the MaterialPropertyBlock color to the attached object.
         if (selfRenderer != null)
         {
             selfRenderer.GetPropertyBlock(selfBlock);
@@ -117,10 +117,10 @@ namespace SceneFlowTools.Runtime.DynamicSample
         }
     }
 
-    // [DeleteBeforeDetect] 对引用对象应用MPB颜色
+    // [DeleteBeforeDetect] Apply the MaterialPropertyBlock color to the referenced object.
     private void ApplyColorToTarget(Color c)
     {
-        // [DeleteBeforeDetect] 对引用对象应用MPB颜色（若存在）
+        // [DeleteBeforeDetect] Apply the MaterialPropertyBlock color to the referenced object, if present.
         if (targetRenderer != null)
         {
             targetRenderer.GetPropertyBlock(targetBlock);

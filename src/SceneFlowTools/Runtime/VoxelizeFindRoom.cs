@@ -13,7 +13,7 @@ namespace SceneFlowTools.Runtime
         public VoxelizeOptions voxelizeOptions;
         public VoxelizeResult voxelizeResult;
         public MeshObjectList meshObjectList;
-        [NonSerialized] public int showRegionIndex = -1; // 用于显示特定区域的索引
+        [NonSerialized] public int showRegionIndex = -1; // Index of the region to display.
         [NonSerialized] public Dictionary<string, MeshFilter> meshFilters = new();
         
         private void OnEnable()
@@ -65,7 +65,7 @@ namespace SceneFlowTools.Runtime
         public List<MeshFilter> CollectMeshes()
         {
             List<MeshFilter> meshFilters = new List<MeshFilter>();
-            // 获取场景中的所有MeshFilter组件
+            // Find all MeshFilter components in the scene.
             foreach (var meshFilter in FindObjectsOfType<MeshFilter>())
             {
                 if (meshFilter.gameObject.activeInHierarchy && meshFilter.sharedMesh != null)

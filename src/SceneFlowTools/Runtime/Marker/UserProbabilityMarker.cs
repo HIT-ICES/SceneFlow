@@ -7,10 +7,10 @@ namespace SceneFlowTools.Runtime
 {
     public class UserProbabilityMarker : MonoBehaviour
     {
-        // 权重
+        // Weight.
         public double weight = 1.0;
 
-        // 影响范围
+        // Area of influence.
         public Vector3 extent = new(1, 1, 1);
 
         public Bounds markerBounds => new(transform.position, extent * 2);

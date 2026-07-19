@@ -131,7 +131,7 @@ namespace SceneFlowTools.Runtime.Service
             return (maxUserCount, allocation);
         }
 
-        // 检查单个子场景是否超载
+        // Check whether a single subscene is overloaded.
         private bool CheckSingleSubsceneOverload(int userCount)
         {
             foreach (var sceneId in _edgeScenes)
@@ -146,7 +146,7 @@ namespace SceneFlowTools.Runtime.Service
             return true;
         }
 
-        // 将问题进一步限制为子树划分问题来求解
+        // Reduce the problem to subtree partitioning.
         private List<ServerAllocationResult> CheckServiceDivisionSubtree(int userCount)
         {
             Debug.Log($"CheckServiceDivisionSubtree(userCount={userCount})");
@@ -175,9 +175,9 @@ namespace SceneFlowTools.Runtime.Service
             CalcServiceDependencies(results);
 
 
-            // 如果两个服务依赖同一个服务，则可以合并
-            // 或者一个服务不依赖任何其他服务，也可以合并到任意一个服务
-            // 有问题，先注释掉
+            // Two services can be merged when they depend on the same service.
+            // A service with no dependencies can also be merged into any service.
+            // Disabled pending correction of the merge behavior.
             // for (var i = 0; i < results.Count; i++)
             // {
             //     var server = results[i];
@@ -217,7 +217,7 @@ namespace SceneFlowTools.Runtime.Service
             {
                 Debug.Log(
                     $"CheckServiceDivisionSubtree(userCount={userCount}) 不可行，结果服务数 {results.Count} ({string.Join(",", results.Select(x => x.scenes.Count))})");
-                // 输出依赖关系
+                // Output dependency relationships.
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < results.Count; i++)
                 {
@@ -264,14 +264,14 @@ namespace SceneFlowTools.Runtime.Service
                 if (gpuMemory + child.gpuMemory <= servers[0].gpuMemoryBytes &&
                     renderTime + child.renderTime <= 1.0 / fpsLimit)
                 {
-                    // 合并
+                    // Merge into the current service.
                     gpuMemory += child.gpuMemory;
                     renderTime += child.renderTime;
                     group.AddRange(child.group);
                 }
                 else
                 {
-                    // 不合并，形成一个新的服务
+                    // Create a new service instead of merging.
                     divisionResults.Add(child);
                 }
             }
@@ -279,7 +279,7 @@ namespace SceneFlowTools.Runtime.Service
             if (group.Count > 0)
                 divisionResults.Add((gpuMemory, renderTime, group));
             //
-            // // divisionResults 彼此之间可以合并
+            // // The divisionResults entries can be merged with each other.
             // divisionResults.Sort((a, b) => b.renderTime.CompareTo(a.renderTime));
             // for (int i = 0; i < divisionResults.Count; i++)
             // {
@@ -291,7 +291,7 @@ namespace SceneFlowTools.Runtime.Service
             //         if (a.gpuMemory + b.gpuMemory <= servers[0].gpuMemory &&
             //             a.renderTime + b.renderTime <= 1.0 / fpsLimit)
             //         {
-            //             // 合并
+            //             // Merge into the current service.
             //             divisionResults[i] = (a.gpuMemory + b.gpuMemory, a.renderTime + b.renderTime,
             //                 a.group.Concat(b.group).ToList());
             //             divisionResults.RemoveAt(j);
@@ -330,14 +330,14 @@ namespace SceneFlowTools.Runtime.Service
                 if (gpuMemory + child.gpuMemory <= servers[0].gpuMemoryBytes &&
                     renderTime + child.renderTime <= 1.0 / fpsLimit)
                 {
-                    // 合并
+                    // Merge into the current service.
                     gpuMemory += child.gpuMemory;
                     renderTime += child.renderTime;
                     group.AddRange(child.group);
                 }
                 else
                 {
-                    // 不合并，形成一个新的服务
+                    // Create a new service instead of merging.
                     divisionResults.Add(child);
                 }
             }
@@ -352,7 +352,7 @@ namespace SceneFlowTools.Runtime.Service
                 server.relyOnServerId = -1;
             }
 
-            // 计算服务间依赖关系
+            // Compute dependencies between services.
             for (int i = 0; i < services.Count; i++)
             {
                 var server = services[i];
@@ -373,7 +373,7 @@ namespace SceneFlowTools.Runtime.Service
             }
         }
 
-        // A依赖B，当且仅当存在A中的场景的父场景在B中
+        // A depends on B iff a scene in A has its parent scene in B.
         private bool IsRelyOn(HashSet<int> scenesA, HashSet<int> scenesB)
         {
             foreach (var sceneId in scenesA)
@@ -386,7 +386,7 @@ namespace SceneFlowTools.Runtime.Service
             return false;
         }
 
-        // 收集子树p中的所有edge上的场景
+        // Collect every edge scene in subtree p.
         private HashSet<int> CollectSubtreeScenesInEdge(int p)
         {
             if (!_edgeScenes.Contains(p)) throw new Exception("p must be in edge scenes");
@@ -494,27 +494,27 @@ namespace SceneFlowTools.Runtime.Service
     [Serializable]
     public class ServerAllocationResult
     {
-        public List<int> rootScenes = new(); // 根场景
-        public List<int> scenes = new(); // 场景
-        public List<int> deviceScenes = new(); // 设备场景
+        public List<int> rootScenes = new(); // Root scenes.
+        public List<int> scenes = new(); // Scenes.
+        public List<int> deviceScenes = new(); // Device-side scenes.
         public double renderTime;
         public double gpuMemory;
-        public int relyOnServerId = -1; // 依赖的服务器ID，-1表示不依赖
+        public int relyOnServerId = -1; // ID of the dependency server; -1 means no dependency.
     }
 
     [Serializable]
     public class AllocationResult
     {
-        public int maxUserCount; // 支持的最大用户数
-        public List<int> cloudScenes; // 云端场景
-        public List<int> deviceScenes; // 设备场景
+        public int maxUserCount; // Maximum supported user count.
+        public List<int> cloudScenes; // Cloud-hosted scenes.
+        public List<int> deviceScenes; // Device-side scenes.
 
-        public List<ServerAllocationResult> edgeServers; // 边缘服务器
+        public List<ServerAllocationResult> edgeServers; // Edge servers.
     }
 
     /// <summary>
-    /// 服务器信息（指的是虚拟化后的逻辑服务器）
-    /// 每个服务器只承载一个微服务
+    /// Information about a virtualized logical server.
+    /// Each server hosts exactly one microservice.
     /// </summary>
     [Serializable]
     public class ServerInfo

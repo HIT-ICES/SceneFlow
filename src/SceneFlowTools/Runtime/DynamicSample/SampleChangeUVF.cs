@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeUVF : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：修改材质UV平铺与偏移（副本赋值为原值）
+        // [DeleteBeforeDetect] Example: simulate UV tiling and offset changes while retaining original values.
         public Renderer targetRenderer;
         public Vector2 tilingA = new Vector2(1f, 1f);
         public Vector2 tilingB = new Vector2(2f, 2f);
@@ -13,16 +13,16 @@ namespace SceneFlowTools.Runtime.DynamicSample
         private Renderer selfRenderer;
         private bool useA = true;
 
-        // [DeleteBeforeDetect] 材质副本字段
+        // [DeleteBeforeDetect] Material-copy fields.
         private Material selfMaterialCopy;
         private Material targetMaterialCopy;
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
 
-            // [DeleteBeforeDetect] 创建材质副本
+            // [DeleteBeforeDetect] Create material copies.
             if (selfRenderer != null && selfRenderer.sharedMaterial != null)
             {
                 selfMaterialCopy = new Material(selfRenderer.sharedMaterial);
@@ -36,17 +36,17 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 按下U切换平铺
+            // [DeleteBeforeDetect] Press U to switch tiling presets.
             if (Input.GetKeyDown(KeyCode.U))
             {
                 useA = !useA;
             }
 
-            // [DeleteBeforeDetect] 选择当前平铺和偏移
+            // [DeleteBeforeDetect] Select the current tiling and offset.
             Vector2 tiling = useA ? tilingA : tilingB;
             Vector2 offset = new Vector2(Time.time * offsetSpeed.x, Time.time * offsetSpeed.y);
 
-            // [DeleteBeforeDetect] 对挂载对象副本执行UV赋值（保持原值）
+            // [DeleteBeforeDetect] Assign UV values to the attached object's copy while retaining the originals.
             if (selfMaterialCopy != null)
             {
                 Vector2 currentTiling = selfMaterialCopy.mainTextureScale;
@@ -55,7 +55,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
                 selfMaterialCopy.mainTextureOffset = currentOffset;
             }
 
-            // [DeleteBeforeDetect] 对引用对象副本执行UV赋值（保持原值）
+            // [DeleteBeforeDetect] Assign UV values to the referenced object's copy while retaining the originals.
             if (targetMaterialCopy != null)
             {
                 Vector2 currentTilingTarget = targetMaterialCopy.mainTextureScale;
@@ -64,7 +64,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
                 targetMaterialCopy.mainTextureOffset = currentOffsetTarget;
             }
 
-            // [DeleteBeforeDetect] 副本未赋回真实材质
+            // [DeleteBeforeDetect] Do not assign the copies back to the actual materials.
         }
     }
 }

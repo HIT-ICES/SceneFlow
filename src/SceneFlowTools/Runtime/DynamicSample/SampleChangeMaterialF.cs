@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeMaterialF : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：切换材质的计算流程（仅作用于副本，不影响可见对象）
+        // [DeleteBeforeDetect] Example: simulate material switching on copies without affecting visible objects.
         public Renderer targetRenderer;
         public Material alternateMaterial;
 
@@ -16,16 +16,16 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象的Renderer并记录原始材质
+            // [DeleteBeforeDetect] Get the attached object's Renderer and record its original material.
             selfRenderer = GetComponent<Renderer>();
             if (selfRenderer != null)
             {
                 originalSelfMaterial = selfRenderer.sharedMaterial;
-                // [DeleteBeforeDetect] 创建本地材质副本以进行模拟修改
+                // [DeleteBeforeDetect] Create a local material copy for simulated changes.
                 alteredSelfMaterialCopy = new Material(originalSelfMaterial);
             }
 
-            // [DeleteBeforeDetect] 记录目标对象原材质，并生成本地副本
+            // [DeleteBeforeDetect] Record the target's original material and create a local copy.
             if (targetRenderer != null)
             {
                 originalTargetMaterial = targetRenderer.sharedMaterial;
@@ -35,12 +35,12 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 按下键M时模拟切换材质（对本地副本进行修改）
+            // [DeleteBeforeDetect] Press M to simulate switching materials by modifying local copies.
             if (Input.GetKeyDown(KeyCode.M))
             {
                 if (alteredSelfMaterialCopy != null && alternateMaterial != null)
                 {
-                    // [DeleteBeforeDetect] 对副本执行切换操作
+                    // [DeleteBeforeDetect] Perform the switch on the copy.
                     alteredSelfMaterialCopy = alteredSelfMaterialCopy.name == alternateMaterial.name 
                         ? new Material(originalSelfMaterial) 
                         : new Material(alternateMaterial);
@@ -48,13 +48,13 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
                 if (alteredTargetMaterialCopy != null && alternateMaterial != null)
                 {
-                    // [DeleteBeforeDetect] 对副本执行切换操作
+                    // [DeleteBeforeDetect] Perform the switch on the copy.
                     alteredTargetMaterialCopy = alteredTargetMaterialCopy.name == alternateMaterial.name 
                         ? new Material(originalTargetMaterial) 
                         : new Material(alternateMaterial);
                 }
 
-                // [DeleteBeforeDetect] 最终没有将副本应用到实际渲染器
+                // [DeleteBeforeDetect] Do not apply the copies to the actual Renderers.
             }
         }
     }

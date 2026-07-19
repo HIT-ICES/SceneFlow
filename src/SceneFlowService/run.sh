@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# 项目虚拟环境目录
+# Project virtual-environment directory.
 VENV_DIR=".venv"
-# uvicorn 启动参数
+# Uvicorn startup arguments.
 APP_MODULE="main:app"
 HOST="0.0.0.0"
 PORT="8000"
 
 function start() {
-    # 检查服务是否已运行，如果是则先停止
+    # Stop the service first if it is already running.
     if [ -f scdv_service.pid ]; then
         PID=$(cat scdv_service.pid)
         if kill -0 $PID 2>/dev/null; then

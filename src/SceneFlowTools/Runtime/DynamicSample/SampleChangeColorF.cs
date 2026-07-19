@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeColorF : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：计算并修改材质颜色副本（不影响实际渲染）
+        // [DeleteBeforeDetect] Example: compute and modify material-color copies without affecting rendering.
         public Renderer targetRenderer;
         public Color colorA = Color.white;
         public Color colorB = Color.red;
@@ -16,10 +16,10 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer（仅作引用）
+            // [DeleteBeforeDetect] Get the attached object's Renderer for reference only.
             selfRenderer = GetComponent<Renderer>();
 
-            // [DeleteBeforeDetect] 创建两个材质副本以供假修改
+            // [DeleteBeforeDetect] Create two material copies for simulated changes.
             if (selfRenderer != null)
             {
                 tempMaterialA = new Material(selfRenderer.sharedMaterial);
@@ -29,24 +29,24 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 在两种颜色之间插值
+            // [DeleteBeforeDetect] Interpolate between two colors.
             float t = (Mathf.Sin(Time.time * lerpSpeed) + 1f) * 0.5f;
             Color c = Color.Lerp(colorA, colorB, t);
 
-            // [DeleteBeforeDetect] 模拟修改材质颜色（只改副本）
+            // [DeleteBeforeDetect] Simulate a color change by modifying only the copies.
             if (tempMaterialA != null)
             {
-                tempMaterialA.color = c; // [DeleteBeforeDetect] 副本修改
+                tempMaterialA.color = c; // [DeleteBeforeDetect] Modify the copy.
             }
 
             if (tempMaterialB != null)
             {
-                tempMaterialB.color = c; // [DeleteBeforeDetect] 副本修改
+                tempMaterialB.color = c; // [DeleteBeforeDetect] Modify the copy.
             }
 
-            // [DeleteBeforeDetect] 可选：模拟把材质赋值回去（但赋值到本地变量，不应用到真实Renderer）
+            // [DeleteBeforeDetect] Simulate reassignment locally without applying it to the actual Renderer.
             Material simulatedResult = tempMaterialA;
-            // simulatedResult 可以继续参与运算，但并未赋给 selfRenderer.material
+            // simulatedResult may be used in later calculations but is not assigned to selfRenderer.material.
         }
     }
 }

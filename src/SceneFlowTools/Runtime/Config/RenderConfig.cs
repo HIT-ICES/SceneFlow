@@ -6,7 +6,7 @@ using UnityEngine.Assertions;
 
 namespace SceneFlowTools.Runtime.Config
 {
-    // 场景配置，每个微服务相同
+    // Scene configuration shared by all microservices.
     [Serializable]
     public class SceneConfig : ScriptableObject
     {
@@ -106,7 +106,7 @@ namespace SceneFlowTools.Runtime.Config
         }
     }
 
-    // 服务配置，每个微服务不同
+    // Service configuration specific to each microservice.
     [Serializable]
     public class ServiceConfig
     {
@@ -122,28 +122,28 @@ namespace SceneFlowTools.Runtime.Config
     [Serializable]
     public class Subscene
     {
-        // 场景ID
+        // Scene ID.
         public int id;
 
-        // 父场景ID，-1表示没有父场景
+        // Parent scene ID; -1 means there is no parent.
         public int parentId;
 
-        // 这个场景包含的物体（不包括其子场景的物体）
+        // Objects in this scene, excluding objects in its child scenes.
         public List<string> objectIds;
 
-        // 这个场景包含的子场景
+        // Child scenes contained in this scene.
         public List<int> subscenes;
 
-        // 这个场景的边界
+        // Bounds of this scene.
         public Bounds bounds;
 
-        // 这个场景的统计信息（不包括其子场景的物体）
+        // Statistics for this scene, excluding objects in child scenes.
         public SubsceneMetrics metrics;
 
-        // 这个场景的统计信息（不包括其子场景的物体）
+        // Statistics for this scene, including objects in child scenes.
         public SubsceneMetrics metricsIncludeChildren;
 
-        // 用户位于此子场景的概率（包括子场景）
+        // Probability that the user is in this scene or one of its child scenes.
         public double userProbability;
 
         public static List<int> GetLeafNodes(List<Subscene> scenes)
@@ -207,7 +207,7 @@ namespace SceneFlowTools.Runtime.Config
 
     public static class SubsceneUtils
     {
-        // 删除没有物体的节点（根节点除外）
+        // Remove nodes with no objects, except the root node.
         public static void DeleteEmptyNodes(List<Subscene> subscenes)
         {
             AssertValid(subscenes);
@@ -257,7 +257,7 @@ namespace SceneFlowTools.Runtime.Config
             }
         }
 
-        // 删除列表中的空场景，并重新编号
+        // Remove empty scenes from the list and renumber the remaining scenes.
         public static void RemoveNulls(List<Subscene> scenes)
         {
             for (int i = 0; i < scenes.Count; i++)

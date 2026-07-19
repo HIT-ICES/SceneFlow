@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeTextureI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：替换材质纹理（_MainTex）
+        // [DeleteBeforeDetect] Example: replace a material's _MainTex texture.
         public Renderer targetRenderer;
         public Texture textureA;
         public Texture textureB;
@@ -13,18 +13,18 @@ namespace SceneFlowTools.Runtime.DynamicSample
         private bool useSelfTextureA = true;
         private bool useTargetTextureA = true;
 
-        // [DeleteBeforeDetect] 玩家相机（用来发射射线检测指向）
+        // [DeleteBeforeDetect] Player camera used as the raycast origin.
         public Camera playerCamera;
 
-        // [DeleteBeforeDetect] 射线检测的距离
+        // [DeleteBeforeDetect] Raycast distance.
         public float rayDistance = 5f;
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
         
-            // [DeleteBeforeDetect] 如果未指定相机，则获取主相机
+            // [DeleteBeforeDetect] Use the main camera when no camera is assigned.
             if (playerCamera == null)
             {
                 playerCamera = Camera.main;
@@ -33,10 +33,10 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Update()
         {
-            // [DeleteBeforeDetect] 玩家按下交互键（例如鼠标左键或VR手柄按钮）
-            if (Input.GetMouseButtonDown(0)) // VR可改为手柄触发
+            // [DeleteBeforeDetect] Handle player interaction input, such as the left mouse button or a VR controller button.
+            if (Input.GetMouseButtonDown(0)) // Replace with controller input for VR.
             {
-                // [DeleteBeforeDetect] 发射射线检测玩家是否指向该物体
+                // [DeleteBeforeDetect] Raycast to determine whether the player is pointing at this object.
                 Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
                 RaycastHit hit;
 

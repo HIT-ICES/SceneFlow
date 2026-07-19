@@ -11,7 +11,7 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from agents.dynamic_detection_agent import DynamicDetectionAgent, DynamicDetectionAnalyzeAgent, \
     DynamicDetectionSummaryAgent, DynamicDetectionResultMessage, DynamicDetectionResult
 from agents.model import MODEL_CLIENT_DETECT
-# 引入日志
+# Configure logging.
 import logging_config  # noqa: F401
 from loguru import logger
 import os

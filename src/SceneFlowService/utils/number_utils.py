@@ -1,11 +1,11 @@
 
 def bin_len_to_str(bin_len: int) -> str:
     """
-    将字节长度转换为更易读的字符串表示形式
+    Convert a byte count to a human-readable string.
     Args:
-        bin_len (int): 字节长度
+        bin_len (int): Byte count.
     Returns:
-        str: 可读的字符串表示形式
+        str: Human-readable representation.
     """
     if bin_len < 1024:
         return f"{bin_len} B"

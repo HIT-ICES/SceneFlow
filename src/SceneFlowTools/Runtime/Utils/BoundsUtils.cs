@@ -47,7 +47,7 @@ namespace SceneFlowTools.Utils
             var max = Vector3.Min(a.max, b.max);
             if (min.x > max.x || min.y > max.y || min.z > max.z)
             {
-                return new Bounds(); // 返回一个空的Bounds
+                return new Bounds(); // Return empty bounds.
             }
 
             return new Bounds((min + max) * 0.5f, max - min);
@@ -105,7 +105,7 @@ namespace SceneFlowTools.Utils
                                       && a.min.z <= b.max.z && a.max.z >= b.min.z;
         }
         
-        // 体积
+        // Volume.
         public static float Volume(this Bounds a)
         {
             return a.size.x * a.size.y * a.size.z;

@@ -45,7 +45,7 @@ def load_voxels(raw_data: dict, downsample_step=0.5) -> tuple[np.ndarray, np.nda
     :return: (raw_data, data_verticals, data_id)
     """
     logger.info(f"load: [{len(raw_data['objects'])}] objects")
-    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")  # 打印前10个体素数据
+    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")  # Log the first 10 voxel entries.
     data = [
         [cluster_utils.downsample_data(x["voxels"], downsample_step), x["id"]]
         for x in raw_data["objects"]
@@ -71,7 +71,7 @@ def load_voxels_new(raw_data: dict, downsample_step=0.5) -> tuple[np.ndarray, di
     :return: (raw_data, data_verticals, data_id)
     """
     logger.info(f"load: [{len(raw_data['objects'])}] objects")
-    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")  # 打印前10个体素数据
+    logger.info(f"voxels: {raw_data['objects'][0]['voxels'][:10]}")  # Log the first 10 voxel entries.
     data = [
         [x["voxels"], x["id"]]
         for x in raw_data["objects"]
@@ -98,10 +98,10 @@ def load_voxels_new(raw_data: dict, downsample_step=0.5) -> tuple[np.ndarray, di
 
 def find_object_labels(data_id: np.ndarray, labels: np.ndarray) -> dict:
     """
-    根据顶点id和顶点label获取对象--标签的映射关系
-    :param data_id: 顶点的ID
-    :param labels: 每个顶点的标签
-    :return: 一个字典，键为顶点ID，值为对应的标签
+    Build an object-to-label mapping from vertex IDs and labels.
+    :param data_id: Vertex IDs.
+    :param labels: Label assigned to each vertex.
+    :return: A dictionary mapping each vertex ID to its label.
     """
     id_label_map = {}
     for vid, label in zip(data_id, labels):
@@ -114,7 +114,7 @@ def find_object_labels(data_id: np.ndarray, labels: np.ndarray) -> dict:
 
 def group_object_by_labels(data_id: np.ndarray, labels: np.ndarray) -> list:
     """
-    根据顶点id和顶点label获取按照标签分组的对象列表
+    Group objects by label using their vertex IDs and labels.
     """
     id_label_map = find_object_labels(data_id, labels)
     label_groups = {}

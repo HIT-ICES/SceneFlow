@@ -4,7 +4,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleChangeUVI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：修改材质UV平铺与偏移（mainTextureScale/Offset）
+        // [DeleteBeforeDetect] Example: change material UV tiling and offset through mainTextureScale/Offset.
         public Renderer targetRenderer;
         public Vector2 tilingA = new Vector2(1f, 1f);
         public Vector2 tilingB = new Vector2(2f, 2f);
@@ -19,7 +19,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
 
             if (targetRenderer != null && targetRenderer.transform != transform)
@@ -34,13 +34,13 @@ namespace SceneFlowTools.Runtime.DynamicSample
             }
         }
 
-        // [DeleteBeforeDetect] 玩家触碰时触发（需设置碰撞器并勾选IsTrigger）
+        // [DeleteBeforeDetect] Trigger on player contact; the Collider must have IsTrigger enabled.
         private void OnTriggerEnter(Collider other)
         {
             if (other.CompareTag("Player"))
             {
                 selfTriggeredByPlayer = true;
-                selfUseA = !selfUseA; // 切换平铺
+                selfUseA = !selfUseA; // Toggle the tiling preset.
             }
         }
 

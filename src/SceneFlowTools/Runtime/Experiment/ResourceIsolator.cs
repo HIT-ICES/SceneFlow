@@ -13,23 +13,23 @@ namespace SceneFlowTools.Runtime.Experiment
         }
 
         /// <summary>
-        /// 执行资源隔离逻辑：对内共享，对外独立，额外消耗显存
+        /// Isolate resources while preserving internal sharing, at the cost of additional GPU memory.
         /// </summary>
         public void IsolateGroupResources()
         {
-            // 核心：两个字典作为“内部缓存池”
-            // 保证在这个 GameObject 集合内部，相同的原始材质/贴图只会克隆一次
+            // Use two dictionaries as an internal cache.
+            // Within this GameObject set, clone each source material or texture only once.
             Dictionary<Material, Material> internalMaterialCache = new Dictionary<Material, Material>();
             Dictionary<Texture, Texture> internalTextureCache = new Dictionary<Texture, Texture>();
 
-            // 获取当前物体及所有子物体的渲染器
+            // Get renderers from this object and all of its children.
             Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
 
             foreach (Renderer ren in renderers)
             {
                 if (ren == null) continue;
 
-                // 注意：必须读取 sharedMaterials，不能读取 materials（否则 Unity 会自动破坏共享）
+                // Read sharedMaterials rather than materials, which would make Unity instantiate materials automatically.
                 Material[] originalMats = ren.sharedMaterials;
                 Material[] newMats = new Material[originalMats.Length];
 
@@ -38,29 +38,29 @@ namespace SceneFlowTools.Runtime.Experiment
                     Material origMat = originalMats[i];
                     if (origMat == null) continue;
 
-                    // 检查缓存：这个材质在我们的“孤岛”内部是否已经被克隆过？
+                    // Check whether this material has already been cloned within the isolated set.
                     if (internalMaterialCache.TryGetValue(origMat, out Material cachedMat))
                     {
-                        // 对内共享：直接使用已经克隆好的材质
+                        // Preserve internal sharing by reusing the cached clone.
                         newMats[i] = cachedMat;
                     }
                     else
                     {
-                        // 对外隔离：这是第一次遇到该材质，彻底克隆它
+                        // Isolate from external users by cloning the material on first use.
                         Material clonedMat = new Material(origMat);
                         clonedMat.name = origMat.name + "_GroupIsolated";
 
-                        // 进一步深入：深度克隆该材质引用的贴图
+                        // Deep-clone the textures referenced by the material.
                         CloneTexturesForMaterial(clonedMat, internalTextureCache);
 
-                        // 记录到内部缓存池中
+                        // Add the clone to the internal cache.
                         internalMaterialCache[origMat] = clonedMat;
                         newMats[i] = clonedMat;
                     }
                 }
 
-                // 将重新分配好引用的新材质数组赋值回 Renderer
-                // 注意：依然使用 sharedMaterials 赋值，维持我们设定的内部共享关系
+                // Assign the remapped material array back to the Renderer.
+                // Continue using sharedMaterials to preserve the intended internal sharing.
                 ren.sharedMaterials = newMats;
             }
 
@@ -70,11 +70,11 @@ namespace SceneFlowTools.Runtime.Experiment
         }
 
         /// <summary>
-        /// 遍历材质上的所有贴图属性，并执行像素级克隆
+        /// Traverse all texture properties on a material and clone their pixel data.
         /// </summary>
         private void CloneTexturesForMaterial(Material mat, Dictionary<Texture, Texture> textureCache)
         {
-            // 获取该材质 Shader 中所有定义的贴图属性名称（支持运行时调用）
+            // Get all texture property names defined by the material's shader at runtime.
             string[] texturePropertyNames = mat.GetTexturePropertyNames();
 
             foreach (string propName in texturePropertyNames)
@@ -82,20 +82,20 @@ namespace SceneFlowTools.Runtime.Experiment
                 Texture originalTex = mat.GetTexture(propName);
                 if (originalTex == null) continue;
 
-                // 大多数情况我们处理的都是 Texture2D
+                // This implementation handles Texture2D instances.
                 Texture2D origTex2D = originalTex as Texture2D;
-                if (origTex2D == null) continue; // 如果是 3D纹理或Cubemap 则暂时跳过
+                if (origTex2D == null) continue; // Skip 3D textures and cubemaps for now.
 
-                // 检查缓存：这张贴图在“孤岛”内部是否已经被克隆过？
+                // Check whether this texture has already been cloned within the isolated set.
                 if (textureCache.TryGetValue(origTex2D, out Texture cachedTex))
                 {
-                    // 对内共享：直接把材质上的贴图指针指向已缓存的克隆体
+                    // Preserve internal sharing by referencing the cached texture clone.
                     mat.SetTexture(propName, cachedTex);
                 }
                 else
                 {
-                    // 对外隔离：彻底在显存中开辟空间，克隆一张新贴图
-                    // 使用 graphicsFormat 可以完美继承原图的格式和色彩空间 (Linear/sRGB)
+                    // Allocate separate GPU memory to isolate a new texture clone from external users.
+                    // graphicsFormat preserves the source format and color space (Linear/sRGB).
                     Texture2D clonedTex2D = new Texture2D(
                         origTex2D.width,
                         origTex2D.height,
@@ -109,13 +109,13 @@ namespace SceneFlowTools.Runtime.Experiment
                     clonedTex2D.wrapMode = origTex2D.wrapMode;
                     clonedTex2D.anisoLevel = origTex2D.anisoLevel;
 
-                    // 核心：硬件级显存数据拷贝，速度极快，且不需要原图开启 Read/Write Enabled
+                    // Copy GPU data directly without requiring Read/Write Enabled on the source texture.
                     Graphics.CopyTexture(origTex2D, clonedTex2D);
 
-                    // 赋值给新材质
+                    // Assign the cloned texture to the new material.
                     mat.SetTexture(propName, clonedTex2D);
 
-                    // 加入内部缓存池
+                    // Add the texture clone to the internal cache.
                     textureCache[origTex2D] = clonedTex2D;
                 }
             }

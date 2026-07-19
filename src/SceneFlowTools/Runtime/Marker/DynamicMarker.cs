@@ -16,7 +16,7 @@ namespace SceneFlowTools.Runtime
     }
 
     /// <summary>
-    /// 用于人工标注物体的动态性
+    /// Supports manual annotation of object dynamics.
     /// </summary>
     [DisallowMultipleComponent]
     public class DynamicMarker : MonoBehaviour

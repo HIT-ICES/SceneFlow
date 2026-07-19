@@ -4,16 +4,16 @@ namespace SceneFlowTools.Runtime.DynamicSample
 {
     public class SampleToggleVisibilityI : MonoBehaviour
     {
-        // [DeleteBeforeDetect] 示例：控制对象可见性（Renderer.enabled 与 GameObject.SetActive）
+        // [DeleteBeforeDetect] Example: control visibility through Renderer.enabled and GameObject.SetActive.
         public Renderer targetRenderer;
         public GameObject targetObject;
 
         private Renderer selfRenderer;
 
-        // [DeleteBeforeDetect] 玩家射线起点（可绑定XR Controller或摄像机）
+        // [DeleteBeforeDetect] Player-ray origin; assign an XR controller or camera.
         public Transform rayOrigin;
 
-        // [DeleteBeforeDetect] 射线检查的最大距离
+        // [DeleteBeforeDetect] Maximum raycast distance.
         public float rayDistance = 5f;
 
         private enum PointedTarget
@@ -23,21 +23,21 @@ namespace SceneFlowTools.Runtime.DynamicSample
             Target
         }
 
-        // [DeleteBeforeDetect] 用于标记玩家当前指向对象
+        // [DeleteBeforeDetect] Tracks whether the player is currently pointing at the object.
         private PointedTarget pointedTarget;
 
         void Awake()
         {
-            // [DeleteBeforeDetect] 获取挂载对象Renderer
+            // [DeleteBeforeDetect] Get the attached object's Renderer.
             selfRenderer = GetComponent<Renderer>();
         }
 
         void Update()
         {
-            // [DeleteBeforeDetect] 每帧检查玩家是否指向本物体
+            // [DeleteBeforeDetect] Check every frame whether the player is pointing at this object.
             CheckPlayerPointing();
 
-            // [DeleteBeforeDetect] 如果玩家正指向此对象并触发输入（比如右手Trigger按钮）
+            // [DeleteBeforeDetect] Respond to input, such as the right trigger, while the player points at this object.
             if (pointedTarget != PointedTarget.None && Input.GetButtonDown("Fire1"))
             {
                 if (pointedTarget == PointedTarget.Self)
@@ -53,7 +53,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
             }
         }
 
-        // [DeleteBeforeDetect] 检查玩家射线是否指向本物体
+        // [DeleteBeforeDetect] Check whether the player's ray points at this object.
         private void CheckPlayerPointing()
         {
             pointedTarget = PointedTarget.None;
@@ -90,7 +90,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
             }
         }
 
-        // [DeleteBeforeDetect] 切换 self Renderer 可见性
+        // [DeleteBeforeDetect] Toggle self's Renderer visibility.
         private void ToggleSelfVisibility()
         {
             if (selfRenderer != null)
@@ -99,7 +99,7 @@ namespace SceneFlowTools.Runtime.DynamicSample
             }
         }
 
-        // [DeleteBeforeDetect] 切换 target Renderer 可见性
+        // [DeleteBeforeDetect] Toggle target's Renderer visibility.
         private void ToggleTargetVisibility()
         {
             if (targetRenderer != null)
@@ -108,13 +108,13 @@ namespace SceneFlowTools.Runtime.DynamicSample
             }
         }
 
-        // [DeleteBeforeDetect] 切换 self GameObject 激活状态
+        // [DeleteBeforeDetect] Toggle self's GameObject active state.
         private void ToggleSelfActiveState()
         {
             gameObject.SetActive(!gameObject.activeSelf);
         }
 
-        // [DeleteBeforeDetect] 切换 target GameObject 激活状态
+        // [DeleteBeforeDetect] Toggle target's GameObject active state.
         private void ToggleTargetActiveState()
         {
             if (targetObject != null)
